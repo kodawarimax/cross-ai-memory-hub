@@ -54,7 +54,82 @@ When working with multiple cutting-edge AI coding tools simultaneously (**OpenAI
 
 ---
 
-## 🚀 Key Features
+## 📦 Quick Setup
+
+### Step 0: Obsidian Download & Vault Setup (Automated)
+If you do not have Obsidian installed or need to initialize a fresh Cross-AI Vault:
+
+```bash
+# Automated setup for macOS, Linux, and Windows:
+./scripts/setup_obsidian.sh [optional_vault_path]
+```
+
+This automated script will:
+1. **Detect & Download Obsidian**:
+   - **macOS**: `brew install --cask obsidian` or direct DMG download
+   - **Linux**: `snap install obsidian --classic` / Flatpak
+   - **Windows**: `winget install Obsidian.Obsidian`
+2. **Scaffold the Cross-AI Vault Directory**:
+   - Creates `memory/`, `wiki/cases/`, `wiki/playbooks/`, `wiki/concepts/`, `wiki/strategies/`, `crm/`, `.obsidian/`
+   - Generates initial `index.md`, `log.md`, and default Wikilink configurations.
+3. **Compile Initial Shared Memory**:
+   - Automatically bootstraps `memory/SHARED_MEMORY.md` and `memory/CHAT_ARCHIVE.md`.
+
+*Once setup finishes, open Obsidian.app, click **"Open folder as vault"**, and select your vault directory!*
+
+---
+
+### Step 1: Clone & Link CLI Tools
+```bash
+git clone https://github.com/kodawarimax/cross-ai-memory-hub.git
+cd cross-ai-memory-hub
+
+# Create symlinks to your PATH (~/.local/bin)
+mkdir -p ~/.local/bin
+ln -sf $(pwd)/chat_archive_cli.py ~/.local/bin/chat-archive
+ln -sf $(pwd)/ai_memory_cli.py ~/.local/bin/ai-memory
+chmod +x ~/.local/bin/chat-archive ~/.local/bin/ai-memory
+```
+
+---
+
+### Step 2: Index Chats & Sync Memory
+```bash
+# Build chat history index across Codex & Claude (~30s for 3,500+ sessions)
+chat-archive sync
+
+# Compile Obsidian shared memory (customize vault path via env if needed)
+export OBSIDIAN_VAULT=~/path/to/your/obsidian-vault
+ai-memory sync
+```
+
+---
+
+### Step 3: Run Automated Health Check
+```bash
+python3 scripts/health_check.py
+```
+
+Expected output:
+```
+==================================================
+🩺 Cross-AI Memory Hub — Health Diagnosis Report
+==================================================
+✅ Archive DB:      Healthy (118.4 MB)
+   - Codex:         2,757 sessions
+   - Claude:        889 sessions
+   - Total:         3,646 indexed sessions
+✅ Web Viewer:      Active at http://127.0.0.1:3333
+✅ Shared Memory:   Ready (79 lines, updated)
+✅ CLI Tools:       chat-archive (OK), ai-memory (OK)
+✅ Agent Contracts: AGENTS.md (Bound), CLAUDE.md (Bound)
+==================================================
+🎉 Diagnosis Complete: All 3 AIs and Obsidian are fully synchronized.
+```
+
+---
+
+## 🚀 Key Features & Commands
 
 ### 1. Chat Archive (`chat-archive`)
 - **FTS5 Indexer**: Parses Codex (`~/.codex/sessions/**/*.jsonl`) and Claude (`~/.claude/projects/**/*.jsonl`) into an optimized SQLite FTS5 database (~100MB for 3,500+ sessions).
@@ -62,7 +137,7 @@ When working with multiple cutting-edge AI coding tools simultaneously (**OpenAI
 - **Local Web Viewer**: Responsive web UI (`http://localhost:3333`) powered purely by Python's built-in `http.server` (zero extra pip packages required!).
 
 ```bash
-# Full-text search
+# Full-text search across Codex & Claude
 chat-archive search "authentication refactor"
 
 # Filter by provider
@@ -90,41 +165,6 @@ ai-memory record --type lesson --title "WebSocket Heartbeat Fix" --content "Impl
 
 # Re-sync memory
 ai-memory sync
-```
-
----
-
-## 📦 Quick Setup
-
-### Prerequisites
-- macOS / Linux
-- Python 3.9+ (Zero external dependencies needed for core features!)
-
-### 1. Clone & Link
-```bash
-git clone https://github.com/kodawarimax/cross-ai-memory-hub.git
-cd cross-ai-memory-hub
-
-# Create symlinks to your PATH
-mkdir -p ~/.local/bin
-ln -sf $(pwd)/chat_archive_cli.py ~/.local/bin/chat-archive
-ln -sf $(pwd)/ai_memory_cli.py ~/.local/bin/ai-memory
-chmod +x ~/.local/bin/chat-archive ~/.local/bin/ai-memory
-```
-
-### 2. Initial Index & Compile
-```bash
-# Build chat history index (takes ~30s for 3,000+ sessions)
-chat-archive sync
-
-# Compile Obsidian shared memory (customize vault path via env if needed)
-export OBSIDIAN_VAULT=~/path/to/your/obsidian-vault
-ai-memory sync
-```
-
-### 3. Run Automated Health Check
-```bash
-python3 scripts/health_check.py
 ```
 
 ---
