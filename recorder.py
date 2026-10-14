@@ -11,7 +11,9 @@ import unicodedata
 from datetime import datetime
 from pathlib import Path
 
-VAULT_DIR = Path("/Users/jungosakamoto/Claude/knowledge-empire")
+HOME_DIR = Path.home()
+_default_vault = HOME_DIR / "Claude" / "knowledge-empire" if (HOME_DIR / "Claude").exists() else HOME_DIR / "knowledge-empire"
+VAULT_DIR = Path(os.environ.get("OBSIDIAN_VAULT", str(_default_vault))).expanduser()
 
 def slugify(text: str) -> str:
     # simple slug for filename

@@ -1,170 +1,137 @@
-# Cross-AI Memory & Chat Archive Hub
+# Cross-AI Memory & Self-Improving Persona Hub (v2.0 Universal Edition)
 
-> **Obsidian-Centered Shared Memory & Cross-Agent Full-Text Chat History for OpenAI Codex CLI, Anthropic Claude Code, and Google Antigravity (Gemini)**
+> **Obsidian-Centered Shared Memory, All-Subfolder Chat History (FTS5), Closed-Loop Self-Improving Persona & SNS Engine, and Built-in Onboarding Coach for OpenAI Codex CLI, Anthropic Claude Code, Google Antigravity (Gemini), and ChatGPT**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://www.python.org/)
 [![Obsidian Ready](https://img.shields.io/badge/Obsidian-Vault%20Integration-purple.svg)](https://obsidian.md/)
+[![Universal Skill](https://img.shields.io/badge/Skill-Codex%20%7C%20Claude%20%7C%20Antigravity-orange.svg)](#)
 
 ---
 
-## 🌟 Overview
+## 🌟 What's New in v2.0 (Universal Deep Obsidian Integration)
 
-When working with multiple cutting-edge AI coding tools simultaneously (**OpenAI Codex CLI**, **Anthropic Claude Code**, and **Google Antigravity**), developers face two major hurdles:
-
-1. **Siloed Chat Histories**: Conversations, debugging transcripts, and decisions are scattered across gigabytes of proprietary JSONL logs (`~/.codex/` and `~/.claude/projects/`).
-2. **Context Amnesia**: Each AI operates in isolation without knowing what the other decided or solved.
-
-**Cross-AI Memory Hub** solves this by:
-- **Instant Full-Text Search (FTS5)** across thousands of Codex and Claude conversations (millisecond responses).
-- **A Zero-Dependency Web Viewer** for comfortable timeline browsing and one-click Markdown copy.
-- **Obsidian as the Single Source of Truth (SSOT)**: Compiling organization doctrines, active projects, and past lessons into a shared memory format automatically loaded by all three AI agents.
+1. **4-AI + All-Subfolder Deep Harvesting**:
+   - Indexes **OpenAI Codex CLI** (`~/.codex/sessions/**/*.jsonl` + `~/.codex/state_*.sqlite` + `~/.codex/memories/`), **Anthropic Claude Code** (`~/.claude/projects/*/*.jsonl` across all workspace subfolders + `~/.claude/projects/*/memory/*.md`), **Google Antigravity (Gemini)** (`~/.gemini/antigravity/brain/*/.system_generated/logs/transcript.jsonl`), and **ChatGPT Web Exports** (`conversations.json` or raw `.zip` archives dropped in `~/Downloads` / `~/Desktop` / `~/Documents`).
+2. **Closed-Loop Self-Improving Persona & SNS Engine (`persona_extractor.py`)**:
+   - Automatically extracts the user's authentic utterances across 3 axes: **使う言葉 (Philosophy)**, **反応する言葉 (Reaction)**, and **行動する言葉 (Action)** plus raw voice dictations (`~/.codex/transcription-history.jsonl`).
+   - Learns from user corrections (`「そうじゃなくて」「〜はNG」「AIっぽい」`) and `feedback_*.md` notes, feeding dynamically learned banned words directly into a deterministic **Slop Gate** that grades and sanitizes X / Threads / note drafts (`SNS_READY_DRAFTS.md`).
+3. **Built-in Agent Onboarding & Constraint Resolution Coach (`onboarding_coach.py`)**:
+   - Automatically detects environment constraints (e.g., missing ChatGPT Web export, Cold-Start < 15 utterances, or Windows symlink/scheduler setup) and guides the user interactively via `ai-memory onboard` (`--diagnose`, `--interview`, `--open-chatgpt`).
+4. **100% Environment-Agnostic Skill Package (`skills/cross-ai-memory-hub/`)**:
+   - Zero hardcoded user paths. Drop-in installation for any macOS, Linux, or Windows/WSL user via `universal_hub_installer.py`.
 
 ---
 
 ## 🏛️ Architecture
 
 ```
-                           ┌─────────────────────────────────┐
-                           │   Obsidian Vault                │
-                           │   (Markdown Knowledge Base)     │
-                           │                                 │
-                           │ 📄 memory/SHARED_MEMORY.md      │ <--- Canonical Shared Context
-                           │ 📁 wiki/ (Cases, Playbooks)     │ <--- Knowledge Graph
-                           │ 📄 memory/CHAT_ARCHIVE.md       │ <--- Archive Portal
-                           └───────────────┬─────────────────┘
-                                           │
-         ┌─────────────────────────────────┼─────────────────────────────────┐
-         │                                 │                                 │
-┌────────▼────────┐               ┌────────▼────────┐               ┌────────▼────────┐
-│    Codex CLI    │               │   Claude Code   │               │   Antigravity   │
-│   (OpenAI)      │               │   (Anthropic)   │               │     (Gemini)    │
-│                 │               │                 │               │                 │
-│ AGENTS.md bound │               │ CLAUDE.md bound │               │ Skill / Prompt  │
-└────────┬────────┘               └────────┬────────┘               └────────┬────────┘
-         │                                 │                                 │
-         └─────────────────────────────────┼─────────────────────────────────┘
-                                           │
-                    ┌──────────────────────▼──────────────────────┐
-                    │       Integrated CLI Tools                  │
-                    │  ・chat-archive (Search & Web UI)           │
-                    │  ・ai-memory (Read & Record to Obsidian)    │
-                    └─────────────────────────────────────────────┘
+                           ┌──────────────────────────────────────────────────┐
+                           │   Obsidian Vault (Single Source of Truth)        │
+                           │                                                  │
+                           │ 📄 memory/SHARED_MEMORY.md    (4-AI Context)     │
+                           │ 📄 memory/PERSONA_CORE.md     (Persona OS)       │
+                           │ 📄 memory/VOICE_LOG.md        (Raw Utterances)   │
+                           │ 📄 memory/SNS_READY_DRAFTS.md (Slop-Checked SNS) │
+                           │ 📁 raw/sessions/              (Incremental Notes)│
+                           │ 📁 linked/claude-workspaces/  (All Subfolders)   │
+                           └────────────────────────┬─────────────────────────┘
+                                                    │
+         ┌──────────────────────────┬───────────────┴──────────┬──────────────────────────┐
+         │                          │                          │                          │
+┌────────▼────────┐        ┌────────▼────────┐        ┌────────▼────────┐        ┌────────▼────────┐
+│    Codex CLI    │        │   Claude Code   │        │   Antigravity   │        │   ChatGPT Web   │
+│ (JSONL+SQLite)  │        │ (All Subfolders)│        │ (Brain JSONL)   │        │ (Auto-ZIP Sync) │
+└────────┬────────┘        └────────┬────────┘        └────────┬────────┘        └────────┬────────┘
+         │                          │                          │                          │
+         └──────────────────────────┴───────────────┬──────────┴──────────────────────────┘
+                                                    │
+                     ┌──────────────────────────────▼──────────────────────────────┐
+                     │       Integrated CLI & Self-Improving Engine                │
+                     │  ・chat-archive (FTS5 Search, Incremental Vault Exporter)   │
+                     │  ・ai-memory (Shared Memory, Persona SNS, Onboarding Coach) │
+                     └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📦 Quick Setup
+## 📦 One-Command Universal Installer (Recommended)
 
-### Step 0: Obsidian Download & Vault Setup (Automated)
-If you do not have Obsidian installed or need to initialize a fresh Cross-AI Vault:
+Works on **any macOS, Linux, or Windows/WSL environment** with zero hardcoded paths:
 
-```bash
-# Automated setup for macOS, Linux, and Windows:
-./scripts/setup_obsidian.sh [optional_vault_path]
-```
-
-This automated script will:
-1. **Detect & Download Obsidian**:
-   - **macOS**: `brew install --cask obsidian` or direct DMG download
-   - **Linux**: `snap install obsidian --classic` / Flatpak
-   - **Windows**: `winget install Obsidian.Obsidian`
-2. **Scaffold the Cross-AI Vault Directory**:
-   - Creates `memory/`, `wiki/cases/`, `wiki/playbooks/`, `wiki/concepts/`, `wiki/strategies/`, `crm/`, `.obsidian/`
-   - Generates initial `index.md`, `log.md`, and default Wikilink configurations.
-3. **Compile Initial Shared Memory**:
-   - Automatically bootstraps `memory/SHARED_MEMORY.md` and `memory/CHAT_ARCHIVE.md`.
-
-*Once setup finishes, open Obsidian.app, click **"Open folder as vault"**, and select your vault directory!*
-
----
-
-### Step 1: Clone & Link CLI Tools
 ```bash
 git clone https://github.com/kodawarimax/cross-ai-memory-hub.git
 cd cross-ai-memory-hub
 
-# Create symlinks to your PATH (~/.local/bin)
-mkdir -p ~/.local/bin
-ln -sf $(pwd)/chat_archive_cli.py ~/.local/bin/chat-archive
-ln -sf $(pwd)/ai_memory_cli.py ~/.local/bin/ai-memory
-chmod +x ~/.local/bin/chat-archive ~/.local/bin/ai-memory
+# Auto-discover AI logs, create/link Obsidian Vault, install CLIs & 30-min auto-sync:
+python3 scripts/universal_hub_installer.py --vault ~/knowledge-empire --persona-name "Your Name"
 ```
 
 ---
 
-### Step 2: Index Chats & Sync Memory
+## 🚀 Key Commands
+
+### 1. Built-in Agent Onboarding & Constraint Coach (`ai-memory onboard`)
+Resolves ChatGPT Web export ingestion, Cold-Start Persona seeding (5-question interview), and OS-specific setup:
+
 ```bash
-# Build chat history index across Codex & Claude (~30s for 3,500+ sessions)
+# Auto-diagnose environment constraints & unzip any ChatGPT export in ~/Downloads
+ai-memory onboard --diagnose
+
+# Open ChatGPT Data Controls in your browser with 3-click export instructions
+ai-memory onboard --open-chatgpt
+
+# Run the 5-minute interactive Persona Seed interview (solves Cold-Start immediately)
+ai-memory onboard --interview
+```
+
+### 2. Self-Improving Persona & SNS Engine (`ai-memory persona`)
+```bash
+# Run closed-loop extraction, rule learning, and SNS draft generation
+ai-memory persona --mode sync
+
+# Inspect your Persona Core OS, Raw Voice Log, or Ready-to-Post SNS Drafts
+ai-memory persona --mode core
+ai-memory persona --mode voice
+ai-memory persona --mode sns
+```
+
+### 3. Cross-AI Full-Text Search & Obsidian Mirror (`chat-archive`)
+```bash
+# Incremental sync of Codex, Claude (all subfolders), Antigravity & ChatGPT to SQLite FTS5 + Obsidian
 chat-archive sync
 
-# Compile Obsidian shared memory (customize vault path via env if needed)
-export OBSIDIAN_VAULT=~/path/to/your/obsidian-vault
-ai-memory sync
-```
+# Millisecond full-text search across all 4 AIs
+chat-archive search "architecture decision"
 
----
+# Show full conversation transcript
+chat-archive show <session_id>
 
-### Step 3: Run Automated Health Check
-```bash
-python3 scripts/health_check.py
-```
-
-Expected output:
-```
-==================================================
-🩺 Cross-AI Memory Hub — Health Diagnosis Report
-==================================================
-✅ Archive DB:      Healthy (118.4 MB)
-   - Codex:         2,757 sessions
-   - Claude:        889 sessions
-   - Total:         3,646 indexed sessions
-✅ Web Viewer:      Active at http://127.0.0.1:3333
-✅ Shared Memory:   Ready (79 lines, updated)
-✅ CLI Tools:       chat-archive (OK), ai-memory (OK)
-✅ Agent Contracts: AGENTS.md (Bound), CLAUDE.md (Bound)
-==================================================
-🎉 Diagnosis Complete: All 3 AIs and Obsidian are fully synchronized.
-```
-
----
-
-## 🚀 Key Features & Commands
-
-### 1. Chat Archive (`chat-archive`)
-- **FTS5 Indexer**: Parses Codex (`~/.codex/sessions/**/*.jsonl`) and Claude (`~/.claude/projects/**/*.jsonl`) into an optimized SQLite FTS5 database (~100MB for 3,500+ sessions).
-- **Deduplication & Hygiene**: Strips redundant system prompt injections to preserve clean user/assistant dialogue.
-- **Local Web Viewer**: Responsive web UI (`http://localhost:3333`) powered purely by Python's built-in `http.server` (zero extra pip packages required!).
-
-```bash
-# Full-text search across Codex & Claude
-chat-archive search "authentication refactor"
-
-# Filter by provider
-chat-archive search "payment webhook" --provider claude
-
-# Show formatted markdown conversation
-chat-archive show <session_id> --thinking --tools
-
-# Launch Local Web UI
+# Launch zero-dependency Web UI at http://127.0.0.1:3333
 chat-archive serve --port 3333
 ```
 
-### 2. Obsidian Shared Memory Bridge (`ai-memory`)
-- **Automatic Compiler**: Compiles high-density `SHARED_MEMORY.md` from your Obsidian notes, doctrine, and recent lessons.
-- **Chronicler Rules Compliance**: Writes new lessons, case studies, or decisions into Obsidian with YAML frontmatter, automatic tags, and at least two `[[wikilinks]]`.
-- **Cross-Agent Auto-Binding**: Injected into `AGENTS.md`, `CLAUDE.md`, and Antigravity system prompts.
+### 4. Shared Memory Read & Chronicler Record (`ai-memory`)
+```bash
+# View or search compiled 4-AI shared context
+ai-memory get
+ai-memory search "keyword"
+
+# Record a lesson, project update, or strategy note with automatic YAML + [[wikilinks]]
+ai-memory record --type lesson --title "Title" --content "Lesson details"
+ai-memory sync
+```
+
+---
+
+## 🧩 Installing as an Agent Skill (Claude Code / Codex / Antigravity)
+
+This repository includes the full portable skill definition in [`skills/cross-ai-memory-hub/`](skills/cross-ai-memory-hub/SKILL.md):
 
 ```bash
-# Read shared context
-ai-memory get
-ai-memory get "Active Projects"
-
-# Record a new lesson directly to Obsidian from any terminal or AI session
-ai-memory record --type lesson --title "WebSocket Heartbeat Fix" --content "Implemented 30s ping-pong..." --author "Claude"
-
-# Re-sync memory
-ai-memory sync
+mkdir -p ~/.claude/skills ~/.codex/skills
+cp -R skills/cross-ai-memory-hub ~/.claude/skills/
+cp -R skills/cross-ai-memory-hub ~/.codex/skills/
 ```
 
 ---

@@ -141,30 +141,34 @@ def cmd_show(args):
             sys.exit(1)
         print(json.dumps(data, ensure_ascii=False, indent=2))
     else:
-        content = render_markdown(args.session_id, include_thinking=args.thinking, include_tools=args.tools)
+        content = render_markdown(args.session_id, include_thinking=args.thinking, include_tools=args.tools, obsidian_format=args.obsidian)
         print(content)
 
 def cmd_serve(args):
     from server import start_server
     start_server(port=args.port, host=args.host)
 
+def cmd_export_obsidian(args):
+    from obsidian_exporter import export_sessions_to_obsidian
+    export_sessions_to_obsidian(verbose=True, force_all=args.force)
+
 def main():
     parser = argparse.ArgumentParser(
         prog="chat-archive",
-        description="Codex & Claude cross-agent chat history manager and viewer."
+        description="Codex, Claude & Antigravity cross-agent chat history manager and Obsidian exporter."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # list
     p_list = subparsers.add_parser("list", help="List recent chat sessions")
-    p_list.add_argument("--provider", choices=["codex", "claude"], help="Filter by provider")
+    p_list.add_argument("--provider", choices=["codex", "claude", "antigravity"], help="Filter by provider")
     p_list.add_argument("--limit", type=int, default=20, help="Number of sessions to show (default: 20)")
     p_list.set_defaults(func=cmd_list)
 
     # search
     p_search = subparsers.add_parser("search", help="Full-text search in chat history")
     p_search.add_argument("query", help="Keywords to search")
-    p_search.add_argument("--provider", choices=["codex", "claude"], help="Filter by provider")
+    p_search.add_argument("--provider", choices=["codex", "claude", "antigravity"], help="Filter by provider")
     p_search.add_argument("--limit", type=int, default=15, help="Number of results to show (default: 15)")
     p_search.set_defaults(func=cmd_search)
 
@@ -173,12 +177,18 @@ def main():
     p_show.add_argument("session_id", help="Session ID (UUID or partial ID)")
     p_show.add_argument("--thinking", action="store_true", help="Include assistant thinking process")
     p_show.add_argument("--tools", action="store_true", help="Include tool execution logs")
+    p_show.add_argument("--obsidian", action="store_true", help="Render in Obsidian Callout + YAML Frontmatter format")
     p_show.add_argument("--format", choices=["md", "json"], default="md", help="Output format (default: md)")
     p_show.set_defaults(func=cmd_show)
 
     # sync
-    p_sync = subparsers.add_parser("sync", help="Synchronize and update session index")
+    p_sync = subparsers.add_parser("sync", help="Synchronize session index and export to Obsidian Vault")
     p_sync.set_defaults(func=cmd_sync)
+
+    # export-obsidian
+    p_exp = subparsers.add_parser("export-obsidian", help="Mirror all sessions into Obsidian Vault (raw/sessions/)")
+    p_exp.add_argument("--force", action="store_true", help="Force re-export of all sessions")
+    p_exp.set_defaults(func=cmd_export_obsidian)
 
     # serve
     p_serve = subparsers.add_parser("serve", help="Start local web viewer server")
