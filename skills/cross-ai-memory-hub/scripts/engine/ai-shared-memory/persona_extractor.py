@@ -132,7 +132,7 @@ def sanitize_pii_and_secrets(text: str) -> str:
     return s
 
 
-def is_authentic_jungo_utterance(text: str) -> bool:
+def is_authentic_utterance(text: str) -> bool:
     t = text.strip()
     if len(t) < 18 or len(t) > 450:
         return False
@@ -186,7 +186,7 @@ def mine_corrections_and_evolving_lexicon(rows: list, prev_state: dict) -> dict:
 
     for prov, content, ts, sid in rows:
         clean = sanitize_pii_and_secrets(re.sub(r"\s+", " ", content).strip())
-        if not is_authentic_jungo_utterance(clean):
+        if not is_authentic_utterance(clean):
             continue
 
         # 1. Check correction patterns (excluding pure coding-task noise)
@@ -222,7 +222,7 @@ def mine_corrections_and_evolving_lexicon(rows: list, prev_state: dict) -> dict:
 
     # 3. Harvest feedback_*.md from Claude project & root memories (with tenant isolation guard)
     feedback_items = []
-    is_custom_isolated_vault = bool(os.environ.get("OBSIDIAN_VAULT")) and not is_jungo_environment() and VAULT_DIR != _default_vault
+    is_custom_isolated_vault = bool(os.environ.get("OBSIDIAN_VAULT")) and not has_local_canon() and VAULT_DIR != _default_vault
     if not is_custom_isolated_vault:
         mem_globs = [
             str(HOME_DIR / ".claude/projects/*/memory/feedback_*.md"),
@@ -322,7 +322,7 @@ def extract_utterances(limit_per_cat: int = 25) -> tuple:
     seen = set()
     for prov, content, ts, sid in rows:
         clean = sanitize_pii_and_secrets(re.sub(r"\s+", " ", content).strip())
-        if not is_authentic_jungo_utterance(clean):
+        if not is_authentic_utterance(clean):
             continue
         norm_key = clean[:60]
         if norm_key in seen:
@@ -410,7 +410,7 @@ def update_persona_core_self_improvement_section(state: dict):
     """Updates the self-improvement section at the bottom of PERSONA_CORE_FILE."""
     core_file, _ = resolve_persona_files()
     MEMORY_DIR.mkdir(parents=True, exist_ok=True)
-    p_name = "坂本淳悟" if is_jungo_environment() else (PERSONA_NAME or HOME_DIR.name)
+    p_name = resolve_owner_name()
     if not core_file.exists():
         init_core = f"""---
 title: "{p_name} 完全人格コピー＆SNS言語エンジン正本 (Persona Core OS)"
@@ -455,7 +455,7 @@ tags: [persona, sns-engine, self-improving]
 def build_voice_log(cats: dict, state: dict) -> Path:
     core_file, voice_file = resolve_persona_files()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-    p_name = "坂本淳悟" if is_jungo_environment() else (PERSONA_NAME or HOME_DIR.name)
+    p_name = resolve_owner_name()
     md = f"""---
 title: "{p_name} リアル発話ログ (使う言葉・反応する言葉・行動する言葉)"
 date: {datetime.now().strftime("%Y-%m-%d")}
@@ -504,8 +504,8 @@ def build_sns_drafts(cats: dict, state: dict) -> Path:
     core_file, voice_file = resolve_persona_files()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
     today_str = datetime.now().strftime("%Y-%m-%d")
-    is_jungo = is_jungo_environment()
-    p_name = "坂本淳悟" if is_jungo else (PERSONA_NAME or HOME_DIR.name)
+    local_cfg = load_local_persona_config()
+    p_name = resolve_owner_name()
     dyn_banned = state.get("dynamic_banned_phrases", [])
 
     phil_list = cats["philosophy"] or [{"text": "AIの時代にこそ、人が人としての心と誇りを取り戻すプロセスが必要だ。", "date": today_str}]
@@ -513,50 +513,11 @@ def build_sns_drafts(cats: dict, state: dict) -> Path:
     act_list = cats["action"] or [{"text": "散らばった知識と経験を一つに統合し、いつでも使える仕組みにする。", "date": today_str}]
     voice_quote = sanitize_pii_and_secrets(cats["voice_dictation"][-1]["text"]) if cats.get("voice_dictation") else phil_list[0]["text"][:80]
 
-    if is_jungo:
-        draft1 = f"""「{voice_quote}」
-
-AIを使えば、0秒で「正解らしき結果」が出る時代になりました。
-でも、結果が早く出るようになればなるほど、
-なぜか心が乾いていく感覚はないでしょうか？
-
-人が本当に救われるのは「結果」を手にした瞬間ではなく、
-仲間と悩み、自分の足で一歩ずつ歩む『プロセス』の中にこそある。
-
-僕自身、過去にすべてを失ったとき、
-心を繋ぎ止めてくれたのは効率ではなく、泥臭く歩む道中そのものでした。
-
-「1（火を灯すこと）」と「9（想いを束ねること）」は人間が握る。
-間の「2〜8（反復作業）」だけをAIの仕組みに任せればいい。
-
-あなたは今日、どんなプロセスを自分の足で味わっていますか？"""
-
-        draft2 = f"""「次から気をつけます」「もっと頑張ります」
-
-現場やAI運用でこの状態になった瞬間、僕は必ず止めます。
-精神論で逃げるな、と。
-
-抜け漏れやミスが起きるのは、人がダメだからじゃない。
-「抜け漏れが起きる構造」のまま放置されていることが問題なんです。
-
-優しさと甘やかしは違う。
-曖昧に許すのは愛ではなく、ただの怠慢です。
-明日、同じ場所でつまずかない『仕組み』を作り切ること。
-
-「力なき愛は無力、愛なき力は暴力（力愛不二）」。
-自分の誇りと大切な仲間を守りたいなら、気合ではなく、まず今日1つ『仕組み』を変えませんか？"""
-
-        draft3 = f"""「このやり方が正解ですよ」
-「こうすれば簡単に稼げますよ」
-
-SNSを開けば、毎日そんな言葉が流れてきます。
-でも、誰かの作った正解に自分の人生を預けている限り、本当の安心は一生手に入りません。
-
-嵐が来たとき、嵐から逃げて走り続け、結果的に一番長く雨風に打たれる「牛」ではなく、
-嵐の真正面に向かって自分の足で踏み出す「バッファロー」でありたい。
-
-誰にも見られていなくても、折れた翌朝に静かに靴を履いて立ち上がる。
-そんな誇り高き人の隣で、あなた自身の『こだわり』を貫くためにこそ、AIという武器を使ってみませんか？"""
+    custom_drafts = local_cfg.get("custom_drafts", [])
+    if len(custom_drafts) >= 3:
+        draft1 = custom_drafts[0].replace("{voice_quote}", voice_quote)
+        draft2 = custom_drafts[1]
+        draft3 = custom_drafts[2]
     else:
         top_concepts = ", ".join(list(state.get("concept_frequencies", {}).keys())[:4]) or "本質・仕組み化"
         draft1 = f"""「{phil_list[0]['text'][:100]}」
@@ -663,7 +624,7 @@ ai-memory persona --mode sync
 """
 
     atomic_write_text(SNS_DRAFTS_FILE, md)
-    if is_jungo:
+    if bool(local_cfg) and HASSHIN_DRAFTS_FILE.parent.parent.exists():
         try:
             atomic_write_text(HASSHIN_DRAFTS_FILE, md)
         except Exception:

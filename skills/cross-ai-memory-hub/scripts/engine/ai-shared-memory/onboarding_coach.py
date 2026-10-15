@@ -39,7 +39,7 @@ def diagnose_constraints(vault_dir: Path = None, archive_db: Path = None) -> dic
     # 1. Check ChatGPT Web Exports / Project DNA
     chatgpt_projects_dir = HOME_DIR / ".codex" / ".chatgpt-projects"
     has_chatgpt_project = chatgpt_projects_dir.exists() and any(chatgpt_projects_dir.rglob("*"))
-    has_vault_chatgpt = (vault_dir / "wiki" / "chatgpt-project-jungo-clone").exists()
+    has_vault_chatgpt = bool(list((vault_dir / "wiki").glob("chatgpt-project*")))
     conv_jsons = []
     zip_exports = []
     for d in [HOME_DIR / "Downloads", HOME_DIR / "Desktop", HOME_DIR / "Documents", chatgpt_projects_dir]:
@@ -69,9 +69,9 @@ def diagnose_constraints(vault_dir: Path = None, archive_db: Path = None) -> dic
         except Exception:
             pass
 
-    has_jungo_canon = (vault_dir / "wiki" / "entities" / "坂本淳悟_正典.md").exists()
+    has_local_canon = (mem_dir / "LOCAL_CANON.md").exists() or (mem_dir / "LOCAL_PERSONA_CONFIG.json").exists()
     has_persona_seeds = seeds_file.exists()
-    is_cold_start = (user_msg_count < 50) and (not has_jungo_canon) and (not has_persona_seeds)
+    is_cold_start = (user_msg_count < 50) and (not has_local_canon) and (not has_persona_seeds)
 
     # 3. Check OS & Runtime Constraints (Windows native symlinks / zstd binary)
     os_name = platform.system()

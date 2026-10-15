@@ -23,13 +23,13 @@ OpenAI Codex（CLI / Desktop / SQLite / ZST）、Anthropic Claude（Code全サ�
    - `memory/`: 全AI共通の正本 `SHARED_MEMORY.md` ＆ `CHAT_ARCHIVE.md`
 4. **閉ループ自己改善型・人格コピー＆SNS直結エンジン（Self-Improving Persona & SNS OS）**:
    - 対話が増えるほど、本人の**「使う言葉（思想・語彙）」「反応する言葉（違和感・問い）」「行動する言葉（意思決定・号令）」**、およびAIへの**ダメ出し・軌道修正（「〜はNG」「そうじゃなくて」等）**を自動学習。
-   - `JUNGO_PERSONA_CORE.md`（または `PERSONA_CORE.md`）、`JUNGO_VOICE_LOG.md`、`SNS_READY_DRAFTS.md` を自動更新し、決定論的Slop Gate（AI構文排除・100点満点採点）を通過したSNS投稿ドラフト（X / Threads / note）を常時生成。
+   - `PERSONA_CORE.md`、`VOICE_LOG.md`、`SNS_READY_DRAFTS.md` を自動更新し、決定論的Slop Gate（AI構文排除・動的NGルール検閲・100点満点採点）を通過したSNS投稿ドラフト（X / Threads / note）を常時生成。
 
 ---
 
 ## 1. どんな人の環境にも適用できるワンコマンド導入手順（Universal Setup）
 
-別のPCや別のユーザーの環境にこのスキルフォルダ（`cross-ai-memory-hub`）を配置し、以下の1コマンドを実行するだけで全自動構築が完了します。
+別のPCや別のユーザーの環境にこのスキルフォルダ（`cross-ai-memory-hub`）を配置し、以下の1コマンド（または `Install_Mac.command` / `Install_Windows.bat` のダブルクリック）を実行するだけで全自動構築が完了します。
 
 ```bash
 # 1. 環境スキャン（変更を加えずに検出状況だけを確認する場合）
@@ -62,17 +62,17 @@ flowchart TD
         P1["ChatGPT Projects & conversations.json"]
     end
 
-    subgraph Engine["決定論的ハーベスター & 自己改善人格エンジン (.ai-hub)"]
+    subgraph Engine["決定論的ハーベスター & 閉ループ自己改善人格エンジン (.ai-hub)"]
         IDX["indexer.py + obsidian_exporter.py (SQLite FTS5 + Incremental Sync)"]
-        PER["persona_extractor.py (語彙頻度・ダメ出し矯正抽出・Slop Gate採点)"]
-        CMP["compiler.py (SHARED_MEMORY.md 高密度コンパイル)"]
+        PER["persona_extractor.py (PII検閲・語彙頻度・ダメ出し矯正抽出・Dynamic Slop Gate)"]
+        CMP["compiler.py (SHARED_MEMORY.md アトミック高密度コンパイル)"]
     end
 
     subgraph Vault["Obsidian Vault (Single Source of Truth)"]
         RAW["raw/sessions/ (全セッションMarkdownミラー)"]
         LNK["linked/ (全サブフォルダ記憶シンボリックリンク)"]
         MEM["memory/SHARED_MEMORY.md (4大AI共通記憶正本)"]
-        PCORE["memory/JUNGO_PERSONA_CORE.md (使う・反応する・行動する言葉 & 自己改善台帳)"]
+        PCORE["memory/PERSONA_CORE.md (使う・反応する・行動する言葉 & 自己改善台帳)"]
         SNS["memory/SNS_READY_DRAFTS.md (X / Threads / note 即投稿ドラフト)"]
     end
 
@@ -116,6 +116,11 @@ ai-memory onboard --diagnose
 ai-memory onboard --interview
 ai-memory onboard --open-chatgpt
 
+# 意味上の矛盾（Semantic Contradictions）の日次スキャン＆ユーザー裁定
+ai-memory contradictions --scan
+ai-memory contradictions --ask
+ai-memory contradictions --resolve <ID> --choice <A|B|BOTH|DISMISS> --note "使い分け条件"
+
 # ヘルスチェック（全項目診断）
 python3 scripts/health_check.py
 ```
@@ -134,3 +139,19 @@ python3 scripts/health_check.py
    - 回答結果は `memory/PERSONA_SEEDS.md` に保存され、**過去ログが0件の人でも導入初日から本人らしさ100%の `PERSONA_CORE.md` と `SNS_READY_DRAFTS.md` が生成**されます。
 3. **【制約③】Windowsネイティブ環境（非WSL）や `zstd` 未導入環境での制限**:
    - **自動フォールバック＋設定案内**: Windowsで開発者モードがOFFでも管理者権限不要のディレクトリジャンクション（`mklink /J`）およびタスクスケジューラ（`schtasks`）へ自動フォールバックしつつ、内蔵エージェントが「開発者モードのON手順（`start ms-settings:developers`）」や `zstd` 導入コマンドをユーザーに案内します。
+
+---
+
+## 5. 日次・意味上の矛盾検知＆ユーザー裁定タスク（Daily Semantic Contradiction Resolver）
+
+自己改善ループで蓄積されたルールや過去メモリ・正典の間に**「意味上の矛盾」**が生じた場合、毎日定期的に検出してユーザーに判断を仰ぎます（`contradiction_resolver.py`）。
+
+1. **3層の矛盾検知アルゴリズム**:
+   - **① 7大意味極性軸（Semantic Polarity Axes）**: 文体（敬体 vs 常体）、出力密度（1〜3行即答 vs 丁寧な教育解説）、構造（箇条書き・表 vs 箇条書き排除・連続散文）、承認範囲（一括自律実行 vs 都度人間承認 `force_l0`）、絵文字・記号、主張スタンス、専門度。
+   - **② 同一トピックの肯定/禁止衝突**: 同じ対象語に対して「必ず使う」と「禁止/NG」が衝突しているケース。
+   - **③ 案件・エンティティの状態矛盾**: 同一案件に対して「稼働中/合意済」と「停止中/未合意」が混在しているケース。
+2. **毎日定期実行（08:45 定時ジョブ ＋ バックグラウンド同期連動）**:
+   - 毎朝 `08:45`（macOS `launchd` / Linux `cron` / Windows `schtasks` ＋ `auto-sync-obsidian.sh` の日次チェック）に自動スキャンを実行。
+   - 未解決の矛盾が見つかると、Obsidianの `memory/CONTRADICTION_INBOX.md` と `SHARED_MEMORY.md` の `§7. 意味上の矛盾チェック` に書き出し、その日最初に開いたAI（または `ai-memory contradictions --ask`）がユーザーへ **「Aを採用 / Bを採用 / 場面分けで両方維持」** の判断を仰ぎます。
+   - ユーザーが回答すると、`persona_learning_state.json` の古い矛盾ルールを自動剪定し、確定した優先ルールを `PERSONA_CORE.md` と `SHARED_MEMORY.md` に即座に反映します。
+

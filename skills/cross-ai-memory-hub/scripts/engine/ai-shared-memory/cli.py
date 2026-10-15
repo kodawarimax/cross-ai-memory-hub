@@ -192,18 +192,16 @@ def cmd_status(args):
     print(f"   Curated Wiki Notes:   {curated_count:,} markdown notes")
     print(f"   Mirrored AI Sessions: {session_mirror_count:,} markdown notes (in raw/sessions/)")
     print(f"   Shared Memory:        {'✅ Ready' if shared_exists else '❌ Missing'} (Updated: {mtime_str})")
-    print(f"   Persona Core & SNS:   ✅ JUNGO_PERSONA_CORE.md / JUNGO_VOICE_LOG.md / SNS_READY_DRAFTS.md")
+    from persona_extractor import PERSONA_CORE_FILE, VOICE_LOG_FILE, SNS_DRAFTS_FILE
+    print(f"   Persona Core & SNS:   ✅ {PERSONA_CORE_FILE.name} / {VOICE_LOG_FILE.name} / {SNS_DRAFTS_FILE.name}")
     print(f"\n🤖 Connected AI Agents & Silos:")
     print(f"   - Google Antigravity (Gemini): Enabled (Transcripts + Skills + Rules)")
-    print(f"   - Anthropic Claude Code:       Enabled (JSONL + 1,633 Proj Memories + Global Memories)")
+    print(f"   - Anthropic Claude Code:       Enabled (JSONL + Proj Memories + Global Memories)")
     print(f"   - OpenAI Codex CLI & ChatGPT:  Enabled (SQLite + JSONL + Rollout Memories + ChatGPT Project DNA)")
 
 
 def cmd_persona(args):
-    from persona_extractor import sync_persona_engine
-    core_file = VAULT_DIR / "memory" / "JUNGO_PERSONA_CORE.md"
-    voice_file = VAULT_DIR / "memory" / "JUNGO_VOICE_LOG.md"
-    sns_file = VAULT_DIR / "memory" / "SNS_READY_DRAFTS.md"
+    from persona_extractor import sync_persona_engine, PERSONA_CORE_FILE as core_file, VOICE_LOG_FILE as voice_file, SNS_DRAFTS_FILE as sns_file
 
     if args.mode == "sync" or not voice_file.exists() or not sns_file.exists():
         sync_persona_engine(verbose=True)
@@ -243,6 +241,25 @@ def cmd_onboard(args):
     subprocess.run(cmd)
 
 
+def cmd_contradictions(args):
+    import subprocess
+    resolver_script = Path(__file__).resolve().parent / "contradiction_resolver.py"
+    cmd = [sys.executable, str(resolver_script)]
+    if args.scan:
+        cmd.append("--scan")
+    if args.daily_cron:
+        cmd.append("--daily-cron")
+    if args.ask:
+        cmd.append("--ask")
+    if args.resolve:
+        cmd.extend(["--resolve", args.resolve])
+    if args.choice:
+        cmd.extend(["--choice", args.choice])
+    if args.note:
+        cmd.extend(["--note", args.note])
+    subprocess.run(cmd)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="ai-memory",
@@ -261,7 +278,7 @@ def main():
     p_search.set_defaults(func=cmd_search)
 
     # persona
-    p_pers = subparsers.add_parser("persona", help="Access Jungo Sakamoto Persona Core, Voice Log, or SNS Ready Drafts")
+    p_pers = subparsers.add_parser("persona", help="Access Persona Core, Voice Log, or SNS Ready Drafts")
     p_pers.add_argument("--mode", choices=["core", "voice", "sns", "sync"], default="core", help="View core lexicon, voice log, SNS drafts, or resync")
     p_pers.set_defaults(func=cmd_persona)
 
@@ -270,7 +287,7 @@ def main():
     p_rec.add_argument("--type", choices=["lesson", "case", "playbook", "concept", "strategy", "project"], default="lesson")
     p_rec.add_argument("--title", required=True, help="Title of the note")
     p_rec.add_argument("--content", required=True, help="Body text / decision / lesson")
-    p_rec.add_argument("--links", nargs="*", default=[], help="Optional wikilinks (e.g. [[坂本淳悟_正典]])")
+    p_rec.add_argument("--links", nargs="*", default=[], help="Optional wikilinks (e.g. [[PERSONA_CORE]])")
     p_rec.add_argument("--author", default="AI", help="Author tag (Codex, Claude, Antigravity, etc.)")
     p_rec.set_defaults(func=cmd_record)
 
@@ -292,6 +309,16 @@ def main():
     p_onb.add_argument("--seed-action", help="Save Action (行動する言葉) seed directly from chat")
     p_onb.add_argument("--seed-ng", default="", help="Save NG words / style correction seed directly from chat")
     p_onb.set_defaults(func=cmd_onboard)
+
+    # contradictions (daily semantic contradiction detector & user resolution engine)
+    p_con = subparsers.add_parser("contradictions", help="Detect semantic contradictions across memories/rules and ask user to resolve them")
+    p_con.add_argument("--scan", action="store_true", help="Scan for semantic contradictions and update CONTRADICTION_INBOX.md")
+    p_con.add_argument("--daily-cron", action="store_true", help="Run daily scheduled check with notification if contradictions exist")
+    p_con.add_argument("--ask", action="store_true", help="Run interactive Q&A to resolve pending contradictions")
+    p_con.add_argument("--resolve", metavar="ID", help="Resolve a specific contradiction by ID (e.g. contra-1a2b3c4d)")
+    p_con.add_argument("--choice", choices=["A", "B", "BOTH", "DISMISS", "a", "b", "both", "dismiss"], help="Which rule is correct (A, B, BOTH, or DISMISS)")
+    p_con.add_argument("--note", default="", help="Optional context split note when resolving")
+    p_con.set_defaults(func=cmd_contradictions)
 
     args = parser.parse_args()
     args.func(args)

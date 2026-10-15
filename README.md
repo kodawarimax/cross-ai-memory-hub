@@ -85,7 +85,21 @@ ai-memory onboard --open-chatgpt
 ai-memory onboard --interview
 ```
 
-### 2. Self-Improving Persona & SNS Engine (`ai-memory persona`)
+### 2. Daily Semantic Contradiction Detector & User Arbiter (`ai-memory contradictions`)
+Automatically detects semantic contradictions across learned rules, feedback memories, and Persona Core (e.g., *Tone: Polite vs. Casual*, *Length: 1-3 line Token-Zero vs. Detailed Educational Explanation*, *Format: Bullet Points vs. Continuous Prose*, *Autonomy: Batch Approval vs. Strict L0 Gate*), and asks the user once per day to decide which rule is canonical or how to split them by context:
+
+```bash
+# Scan for semantic contradictions and update memory/CONTRADICTION_INBOX.md
+ai-memory contradictions --scan
+
+# Interactive Q&A to resolve pending contradictions (1=Keep A, 2=Keep B, 3=Keep Both with Context Split)
+ai-memory contradictions --ask
+
+# Resolve directly from any AI chat session
+ai-memory contradictions --resolve <contra-id> --choice BOTH --note "Use bullet tables for engineering, continuous prose for SNS"
+```
+
+### 3. Self-Improving Persona & SNS Engine (`ai-memory persona`)
 ```bash
 # Run closed-loop extraction, rule learning, and SNS draft generation
 ai-memory persona --mode sync
@@ -96,7 +110,7 @@ ai-memory persona --mode voice
 ai-memory persona --mode sns
 ```
 
-### 3. Cross-AI Full-Text Search & Obsidian Mirror (`chat-archive`)
+### 4. Cross-AI Full-Text Search & Obsidian Mirror (`chat-archive`)
 ```bash
 # Incremental sync of Codex, Claude (all subfolders), Antigravity & ChatGPT to SQLite FTS5 + Obsidian
 chat-archive sync
@@ -111,7 +125,7 @@ chat-archive show <session_id>
 chat-archive serve --port 3333
 ```
 
-### 4. Shared Memory Read & Chronicler Record (`ai-memory`)
+### 5. Shared Memory Read & Chronicler Record (`ai-memory`)
 ```bash
 # View or search compiled 4-AI shared context
 ai-memory get

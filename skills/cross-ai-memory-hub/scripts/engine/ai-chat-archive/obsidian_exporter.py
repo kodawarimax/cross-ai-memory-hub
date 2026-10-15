@@ -125,11 +125,13 @@ def ensure_memory_symlinks():
 
     # 5. Auto-sync any new files in ~/.codex/.chatgpt-projects/<id>/sources/
     cgp_root = home / ".codex" / ".chatgpt-projects"
-    dest_cgp = VAULT_DIR / "wiki" / "chatgpt-project-jungo-clone"
+    existing_cgp_dirs = list((VAULT_DIR / "wiki").glob("chatgpt-project*"))
+    dest_cgp = existing_cgp_dirs[0] if existing_cgp_dirs else (VAULT_DIR / "wiki" / "chatgpt-project-sources")
     if cgp_root.exists():
         dest_cgp.mkdir(parents=True, exist_ok=True)
         for src_f in cgp_root.rglob("*.md"):
-            if src_f.name == "03_cia_profile_jungo.md" and (dest_cgp / "03_cia_profile_jungo_FULL.md").exists():
+            stem_full = f"{src_f.stem}_FULL.md"
+            if (dest_cgp / stem_full).exists():
                 continue
             target_f = dest_cgp / src_f.name
             if not target_f.exists() or src_f.stat().st_mtime > target_f.stat().st_mtime:
@@ -313,7 +315,7 @@ author: AI統合運用基盤
 # AI Chat Archive — Codex・Claude Code・Antigravity 全チャット履歴ハブ
 
 > **最終自動同期**: `{now_str}`
-> **関連正典**: [[坂本淳悟_正典]] | [[IT部_正典]] | [[SHARED_MEMORY]]
+> **関連正典**: [[SHARED_MEMORY]] | [[PERSONA_CORE]]
 > **格納レイヤー**: `knowledge-empire/raw/sessions/{{codex,claude,antigravity}}/YYYY-MM/` + `dev/ai-chat-archive/archive.db` (FTS5)
 
 ---

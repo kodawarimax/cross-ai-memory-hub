@@ -106,8 +106,15 @@ def compile_shared_memory():
     tot_cnt = c_cnt + x_cnt + a_cnt
 
     local_canon_file = MEMORY_DIR / "LOCAL_CANON.md"
-    is_jungo_vault = local_canon_file.exists() or (VAULT_DIR / "wiki" / "entities" / "坂本淳悟_正典.md").exists()
-    persona_name = os.environ.get("PERSONA_NAME", "坂本淳悟" if is_jungo_vault else HOME_DIR.name)
+    local_cfg_file = MEMORY_DIR / "LOCAL_PERSONA_CONFIG.json"
+    default_owner = HOME_DIR.name
+    if local_cfg_file.exists():
+        try:
+            import json
+            default_owner = json.loads(local_cfg_file.read_text(encoding="utf-8")).get("owner_name", default_owner)
+        except Exception:
+            pass
+    persona_name = os.environ.get("PERSONA_NAME", default_owner)
 
     content = f"""# AI Shared Memory — 4大AI共通記憶正本 (Single Source of Truth)
 
@@ -220,6 +227,11 @@ chat-archive sync && ai-memory sync
 ai-memory onboard --diagnose
 ai-memory onboard --interview
 ai-memory onboard --open-chatgpt
+
+# 意味上の矛盾（Semantic Contradictions）の日次スキャン＆ユーザー判断による解決
+ai-memory contradictions --scan
+ai-memory contradictions --ask
+ai-memory contradictions --resolve <ID> --choice <A|B|BOTH|DISMISS> --note "使い分け条件"
 ```
 """
 
@@ -232,6 +244,13 @@ ai-memory onboard --open-chatgpt
     try:
         from onboarding_coach import format_directives_for_shared_memory
         content += "\n" + format_directives_for_shared_memory(vault_dir=VAULT_DIR, archive_db=ARCHIVE_DB)
+    except Exception:
+        pass
+
+    try:
+        from contradiction_resolver import scan_and_update_contradictions, format_contradictions_for_shared_memory
+        scan_and_update_contradictions(vault_dir=VAULT_DIR, notify_macos=False)
+        content += "\n" + format_contradictions_for_shared_memory(vault_dir=VAULT_DIR)
     except Exception:
         pass
 

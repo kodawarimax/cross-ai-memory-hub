@@ -474,11 +474,10 @@ def parse_codex_zst_file(file_path: Path, codex_names: dict):
     }
 
 def collect_codex_sqlite_sessions(indexed: dict, codex_names: dict) -> list:
-    codex_homes = [
-        CODEX_DIR,
-        Path(os.path.expanduser("~/.openclaw/agents/main/agent/codex-home")),
-        Path(os.path.expanduser("~/.codex-kodawari")),
-    ]
+    codex_homes = [CODEX_DIR, Path(os.path.expanduser("~/.openclaw/agents/main/agent/codex-home"))]
+    for p in Path.home().glob(".codex-*"):
+        if p.is_dir() and p not in codex_homes:
+            codex_homes.append(p)
     results = []
     for home_dir in codex_homes:
         state_db = home_dir / "state_5.sqlite"

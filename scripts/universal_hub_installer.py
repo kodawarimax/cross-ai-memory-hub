@@ -168,10 +168,9 @@ def scaffold_vault_and_persona(vault_dir: Path, persona_name: str):
     else:
         gitignore.write_text(".obsidian/workspace*\n.DS_Store\nraw/\nlinked/\n", encoding="utf-8")
 
-    # Create initial PERSONA_CORE.md if neither JUNGO_PERSONA_CORE.md nor PERSONA_CORE.md exists
-    jungo_core = vault_dir / "memory" / "JUNGO_PERSONA_CORE.md"
+    # Create initial PERSONA_CORE.md if not yet present
     generic_core = vault_dir / "memory" / "PERSONA_CORE.md"
-    if not jungo_core.exists() and not generic_core.exists():
+    if not generic_core.exists() and not any((vault_dir / "memory").glob("*PERSONA_CORE.md")):
         now_str = datetime.now().strftime("%Y-%m-%d")
         generic_core.write_text(f"""---
 title: "{persona_name} 完全人格コピー＆SNS言語エンジン正本 (PERSONA_CORE)"
@@ -214,6 +213,7 @@ def bind_agent_contracts(workspace_dir: Path, vault_dir: Path):
 - 人格コピー＆SNSドラフト抽出: `ai-memory persona --mode core` / `ai-memory persona --mode sns`
 - 重要決定・教訓の記録: `ai-memory record --type <lesson|project|strategy> --title "..." --content "..."`
 - **内蔵エージェント・オンボーディング規律**: `SHARED_MEMORY.md` の `§6. 内蔵エージェントからの環境最適化・ユーザー案内` に未解決の制約（ChatGPTエクスポート案内、コールドスタート時の5問人格インタビュー、OS設定案内）が表示されている場合、AIエージェントは対話の中で自律的にユーザーへその手順を案内・質問して解決をリードする（`ai-memory onboard --diagnose` / `ai-memory onboard --seed-philosophy ...`）。
+- **日次・意味上の矛盾チェック＆ユーザー裁定規律**: `SHARED_MEMORY.md` の `§7. 意味上の矛盾チェック ＆ ユーザー判断ルール`（または `memory/CONTRADICTION_INBOX.md`）に未解決の矛盾（Pending Contradictions）が存在する場合、1日1回ユーザーへA・Bどちらが正しいか（または場面分けか）質問し、回答を `ai-memory contradictions --resolve <ID> --choice <A|B|BOTH>` で即座に正本へ反映する。
 """
     for fname in ["AGENTS.md", "CLAUDE.md"]:
         fpath = workspace_dir / fname
@@ -225,7 +225,7 @@ def bind_agent_contracts(workspace_dir: Path, vault_dir: Path):
 
 def deploy_runtime_engine(vault_dir: Path) -> tuple[Path, Path]:
     """
-    Ensures the portable runtime scripts (indexer.py, obsidian_exporter.py, compiler.py, persona_extractor.py, onboarding_coach.py, cli.py, recorder.py)
+    Ensures the portable runtime scripts (indexer.py, obsidian_exporter.py, compiler.py, persona_extractor.py, onboarding_coach.py, contradiction_resolver.py, cli.py, recorder.py)
     and CLI binaries (~/.local/bin/chat-archive, ~/.local/bin/ai-memory) exist in the target user's environment.
     """
     home = Path.home()
@@ -252,7 +252,7 @@ def deploy_runtime_engine(vault_dir: Path) -> tuple[Path, Path]:
                 dst_sh = archive_dir / "bin" / "auto-sync-obsidian.sh"
                 shutil.copy2(sync_sh, dst_sh)
                 dst_sh.chmod(0o755)
-            for fname in ["compiler.py", "persona_extractor.py", "onboarding_coach.py", "recorder.py", "cli.py"]:
+            for fname in ["compiler.py", "persona_extractor.py", "onboarding_coach.py", "contradiction_resolver.py", "recorder.py", "cli.py"]:
                 src = bundled_engine / "ai-shared-memory" / fname
                 if src.exists():
                     shutil.copy2(src, memory_dir / fname)
@@ -274,20 +274,21 @@ def deploy_runtime_engine(vault_dir: Path) -> tuple[Path, Path]:
 
 def install_background_daemon(archive_dir: Path, memory_dir: Path, vault_dir: Path, persona_name: str):
     sync_script = archive_dir / "bin" / "auto-sync-obsidian.sh"
+    contra_script = memory_dir / "contradiction_resolver.py"
     if not sync_script.exists():
         return
     sys_name = platform.system()
     if sys_name == "Darwin":
         plist_dir = Path.home() / "Library" / "LaunchAgents"
         plist_dir.mkdir(parents=True, exist_ok=True)
-        plist_path = plist_dir / "com.kodawari.cross-ai-obsidian-sync.plist"
+        plist_path = plist_dir / "com.universal.cross-ai-obsidian-sync.plist"
         if not plist_path.exists():
             plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.kodawari.cross-ai-obsidian-sync</string>
+    <string>com.universal.cross-ai-obsidian-sync</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
@@ -310,16 +311,55 @@ def install_background_daemon(archive_dir: Path, memory_dir: Path, vault_dir: Pa
             plist_path.write_text(plist_content, encoding="utf-8")
             subprocess.run(["launchctl", "load", str(plist_path)], stderr=subprocess.DEVNULL)
             print(f"✅ Installed 10-minute macOS LaunchAgent: {plist_path}")
+
+        daily_plist = plist_dir / "com.universal.cross-ai-contradiction-daily.plist"
+        if contra_script.exists() and not daily_plist.exists():
+            daily_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.universal.cross-ai-contradiction-daily</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{sys.executable}</string>
+        <string>{contra_script}</string>
+        <string>--daily-cron</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>OBSIDIAN_VAULT</key>
+        <string>{vault_dir}</string>
+        <key>PERSONA_NAME</key>
+        <string>{persona_name}</string>
+    </dict>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>8</integer>
+        <key>Minute</key>
+        <integer>45</integer>
+    </dict>
+</dict>
+</plist>
+"""
+            daily_plist.write_text(daily_content, encoding="utf-8")
+            subprocess.run(["launchctl", "load", str(daily_plist)], stderr=subprocess.DEVNULL)
+            print(f"✅ Installed Daily 08:45 Contradiction Check LaunchAgent: {daily_plist}")
     elif sys_name == "Linux":
         try:
             cur = subprocess.check_output(["crontab", "-l"], text=True, stderr=subprocess.DEVNULL)
         except Exception:
             cur = ""
+        new_lines = cur.rstrip()
         if str(sync_script) not in cur:
-            line = f'*/10 * * * * OBSIDIAN_VAULT="{vault_dir}" PERSONA_NAME="{persona_name}" /bin/bash "{sync_script}" >/dev/null 2>&1\n'
+            new_lines += f'\n*/10 * * * * OBSIDIAN_VAULT="{vault_dir}" PERSONA_NAME="{persona_name}" /bin/bash "{sync_script}" >/dev/null 2>&1'
+        if str(contra_script) not in cur:
+            new_lines += f'\n45 8 * * * OBSIDIAN_VAULT="{vault_dir}" PERSONA_NAME="{persona_name}" "{sys.executable}" "{contra_script}" --daily-cron >/dev/null 2>&1'
+        if new_lines != cur.rstrip():
             proc = subprocess.Popen(["crontab", "-"], stdin=subprocess.PIPE, text=True)
-            proc.communicate(cur.rstrip() + "\n" + line)
-            print("✅ Installed 10-minute Linux cron job.")
+            proc.communicate(new_lines + "\n")
+            print("✅ Installed Linux cron jobs (10-min sync + daily 08:45 contradiction check).")
     elif os.name == "nt":
         try:
             win_cmd = f'cmd /c "set OBSIDIAN_VAULT={vault_dir}&& set PERSONA_NAME={persona_name}&& python \"{archive_dir / "indexer.py"}\" && python \"{archive_dir / "obsidian_exporter.py"}\" && python \"{memory_dir / "compiler.py"}\""'
@@ -327,7 +367,12 @@ def install_background_daemon(archive_dir: Path, memory_dir: Path, vault_dir: Pa
                 ["schtasks", "/Create", "/SC", "MINUTE", "/MO", "10", "/TN", "CrossAIObsidianSync", "/TR", win_cmd, "/F"],
                 check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
             )
-            print("✅ Installed 10-minute Windows Scheduled Task (CrossAIObsidianSync).")
+            daily_cmd = f'cmd /c "set OBSIDIAN_VAULT={vault_dir}&& set PERSONA_NAME={persona_name}&& python \"{contra_script}\" --daily-cron"'
+            subprocess.run(
+                ["schtasks", "/Create", "/SC", "DAILY", "/ST", "08:45", "/TN", "CrossAIContradictionDaily", "/TR", daily_cmd, "/F"],
+                check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+            print("✅ Installed Windows Scheduled Tasks (10-min sync + daily 08:45 contradiction check).")
         except Exception:
             pass
 

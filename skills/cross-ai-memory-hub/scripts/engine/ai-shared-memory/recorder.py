@@ -33,7 +33,7 @@ def record_knowledge(entry_type: str, title: str, content: str, links: list = No
     # Default wikilinks if fewer than 2 provided
     if not links:
         links = []
-    default_links = ["[[坂本淳悟_正典]]", "[[IT部_正典]]", "[[真の王]]"]
+    default_links = ["[[SHARED_MEMORY]]", "[[PERSONA_CORE]]"]
     for dl in default_links:
         if len(links) >= 2:
             break

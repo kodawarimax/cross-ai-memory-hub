@@ -11,6 +11,11 @@ DEV_DIR="$(cd "$ARCHIVE_DIR/.." && pwd)"
 if [ -f "$ARCHIVE_DIR/indexer.py" ]; then
   python3 "$ARCHIVE_DIR/indexer.py" >/dev/null 2>&1
 fi
+if [ -f "$DEV_DIR/ai-shared-memory/contradiction_resolver.py" ]; then
+  python3 "$DEV_DIR/ai-shared-memory/contradiction_resolver.py" --daily-cron >/dev/null 2>&1 || true
+elif [ -f "$ARCHIVE_DIR/contradiction_resolver.py" ]; then
+  python3 "$ARCHIVE_DIR/contradiction_resolver.py" --daily-cron >/dev/null 2>&1 || true
+fi
 if [ -f "$DEV_DIR/ai-shared-memory/compiler.py" ]; then
   python3 "$DEV_DIR/ai-shared-memory/compiler.py" >/dev/null 2>&1
 elif [ -f "$ARCHIVE_DIR/compiler.py" ]; then
