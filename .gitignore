@@ -1,0 +1,10 @@
+archive.db
+archive.db-wal
+archive.db-shm
+*.db
+*.sqlite
+*.log
+__pycache__/
+*.pyc
+.DS_Store
+.env
