@@ -292,6 +292,8 @@ def cmd_contradictions(args):
         cmd.append("--ask")
     if getattr(args, "next_value", False):
         cmd.append("--next-value")
+    if getattr(args, "next_meaning", False):
+        cmd.append("--next-meaning")
     if getattr(args, "resolve", None):
         cmd.extend(["--resolve", args.resolve])
     if getattr(args, "choice", None):
@@ -367,19 +369,21 @@ def main():
     p_onb.add_argument("--ingest-path", default=None, help="Optional path to existing files to ingest during onboarding")
     p_onb.set_defaults(func=cmd_onboard)
 
-    # contradictions & value priorities (daily semantic contradiction & value hierarchy engine)
+    # contradictions, value priorities & meaning alignments
     for sub_name, sub_help in [
-        ("contradictions", "Detect semantic contradictions & value priority trade-offs and ask user to resolve them"),
+        ("contradictions", "Detect semantic contradictions, value priority trade-offs & AI meaning discrepancies"),
         ("values", "Alias for `contradictions` — manage Value Priority & Trade-Off Alignment questions"),
+        ("meanings", "Alias for `contradictions` — verify AI's understanding from memory vs. owner's true meaning"),
     ]:
         p_con = subparsers.add_parser(sub_name, help=sub_help)
-        p_con.add_argument("--scan", action="store_true", help="Scan for semantic contradictions + queue daily Value Priority question")
+        p_con.add_argument("--scan", action="store_true", help="Scan for contradictions + queue daily Value Priority & Meaning Alignment questions")
         p_con.add_argument("--daily-cron", action="store_true", help="Run daily scheduled check with notification")
-        p_con.add_argument("--ask", action="store_true", help="Run interactive Q&A to resolve pending contradictions & value priorities")
+        p_con.add_argument("--ask", action="store_true", help="Run interactive Q&A to resolve pending items")
         p_con.add_argument("--next-value", action="store_true", help="Queue the next unranked Value Priority trade-off question immediately")
-        p_con.add_argument("--resolve", metavar="ID", help="Resolve a specific item by ID (e.g. contra-1a2b3c4d or val-vision-vs-cashflow)")
+        p_con.add_argument("--next-meaning", action="store_true", help="Queue the next unverified Meaning Alignment question immediately")
+        p_con.add_argument("--resolve", metavar="ID", help="Resolve a specific item by ID (e.g. contra-*, val-*, or meaning-*)")
         p_con.add_argument("--choice", choices=["A", "B", "BOTH", "DISMISS", "a", "b", "both", "dismiss"], help="Which option takes priority (A, B, BOTH, or DISMISS)")
-        p_con.add_argument("--note", default="", help="Optional context split or tie-breaker note when resolving")
+        p_con.add_argument("--note", default="", help="Optional context split, tie-breaker, or true meaning note when resolving")
         p_con.set_defaults(func=cmd_contradictions)
 
     args = parser.parse_args()
