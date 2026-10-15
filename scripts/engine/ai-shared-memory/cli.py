@@ -155,22 +155,56 @@ def cmd_record(args):
             title=args.title,
             content=args.content,
             links=args.links,
-            author=args.author
+            author=args.author,
+            area=getattr(args, "area", "work"),
+            status=getattr(args, "status", "active"),
         )
         print(f"✅ Successfully recorded to Obsidian Vault:")
         print(f"   Path:  {res['file_path']}")
-        print(f"   Type:  {res['type'].upper()}")
+        print(f"   Type:  {res['type'].upper()} (Area: {res['area']}, Status: {res['status']})")
         print(f"   Title: {res['title']}")
-        print(f"   Auto-updated: log.md, SHARED_MEMORY.md")
+        print(f"   Auto-updated: log.md, SHARED_MEMORY.md, Knowledge_Atlas.base")
     except Exception as e:
         print(f"❌ Error recording knowledge: {e}", file=sys.stderr)
         sys.exit(1)
 
 
+def cmd_ingest(args):
+    from ingestor import ingest_files
+    try:
+        res = ingest_files(
+            src_path=args.path,
+            vault_dir=VAULT_DIR,
+            area=args.area,
+            target_folder=args.folder,
+            bundle_name=args.bundle_name,
+        )
+        print(f"✅ 4-Stage File Ingest Complete (Bundle: {res['bundle_id']}):")
+        print(f"   - Source Files:     {res['source_count']} files")
+        print(f"   - Preserved Raw:    {res['preserved_count']} files in Imports/{res['bundle_id']}/ (100% verified)")
+        print(f"   - Distilled Notes:  {res['distilled_count']} clean Markdown notes in {args.folder}/")
+        print(f"   - Bundle MOC Index: {res['moc_path']}")
+    except Exception as e:
+        print(f"❌ Error during file ingest: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def cmd_scaffold(args):
+    from ingestor import ensure_obsidian_native_scaffold
+    res = ensure_obsidian_native_scaffold(VAULT_DIR, persona_name=args.persona_name)
+    print(f"✅ Obsidian Native v3.1 Scaffold Ready at: {res['vault_dir']}")
+    if res["created_files"]:
+        print(f"   Created: {', '.join(res['created_files'])}")
+    else:
+        print("   All .base views, Overview.canvas, and Home.md already exist (non-destructive).")
+
+
 def cmd_sync(args):
     from compiler import compile_shared_memory
+    from ingestor import ensure_obsidian_native_scaffold
+    ensure_obsidian_native_scaffold(VAULT_DIR)
     path = compile_shared_memory()
-    print(f"✅ Synced and recompiled SHARED_MEMORY.md successfully!")
+    print(f"✅ Synced and recompiled SHARED_MEMORY.md + Obsidian Bases successfully!")
     print(f"   Path: {path}")
 
 
@@ -180,17 +214,20 @@ def cmd_status(args):
         return
 
     curated_count = len(glob.glob(str(VAULT_DIR / "wiki" / "**" / "*.md"), recursive=True))
+    resource_count = len(glob.glob(str(VAULT_DIR / "Resources" / "**" / "*.md"), recursive=True))
     session_mirror_count = len(glob.glob(str(VAULT_DIR / "raw" / "sessions" / "**" / "*.md"), recursive=True))
     shared_exists = SHARED_MEMORY_FILE.exists()
+    bases_exist = (VAULT_DIR / "Knowledge_Atlas.base").exists() and (VAULT_DIR / "AI_Sessions.base").exists()
     mtime_str = "N/A"
     if shared_exists:
         from datetime import datetime
         mtime_str = datetime.fromtimestamp(SHARED_MEMORY_FILE.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
 
-    print(f"🏛️  Obsidian Knowledge Empire Hub Status:")
+    print(f"🏛️  Obsidian Knowledge Empire Hub Status (v3.1 Obsidian Native):")
     print(f"   Vault Path:           {VAULT_DIR}")
-    print(f"   Curated Wiki Notes:   {curated_count:,} markdown notes")
+    print(f"   Curated Wiki & Res:   {curated_count + resource_count:,} markdown notes (wiki: {curated_count:,}, Resources: {resource_count:,})")
     print(f"   Mirrored AI Sessions: {session_mirror_count:,} markdown notes (in raw/sessions/)")
+    print(f"   Obsidian Bases & MOC: {'✅ Ready (Knowledge_Atlas.base / AI_Sessions.base / Home.md)' if bases_exist else '⚠️ Run `ai-memory scaffold`'}")
     print(f"   Shared Memory:        {'✅ Ready' if shared_exists else '❌ Missing'} (Updated: {mtime_str})")
     from persona_extractor import PERSONA_CORE_FILE, VOICE_LOG_FILE, SNS_DRAFTS_FILE
     print(f"   Persona Core & SNS:   ✅ {PERSONA_CORE_FILE.name} / {VOICE_LOG_FILE.name} / {SNS_DRAFTS_FILE.name}")
@@ -238,6 +275,8 @@ def cmd_onboard(args):
         cmd.extend(["--seed-action", args.seed_action])
     if args.seed_ng:
         cmd.extend(["--seed-ng", args.seed_ng])
+    if getattr(args, "ingest_path", None):
+        cmd.extend(["--ingest-path", args.ingest_path])
     subprocess.run(cmd)
 
 
@@ -263,7 +302,7 @@ def cmd_contradictions(args):
 def main():
     parser = argparse.ArgumentParser(
         prog="ai-memory",
-        description="Cross-agent shared memory bridge between Codex, Claude Code, Antigravity, ChatGPT, and Obsidian."
+        description="Cross-agent shared memory & Obsidian Native bridge (v3.1) for Codex, Claude Code, Antigravity, and ChatGPT."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -283,13 +322,28 @@ def main():
     p_pers.set_defaults(func=cmd_persona)
 
     # record
-    p_rec = subparsers.add_parser("record", help="Record a new decision, lesson, or project note into Obsidian")
-    p_rec.add_argument("--type", choices=["lesson", "case", "playbook", "concept", "strategy", "project"], default="lesson")
+    p_rec = subparsers.add_parser("record", help="Record a new decision, lesson, or project note into Obsidian (Unified Schema v3.1)")
+    p_rec.add_argument("--type", choices=["lesson", "case", "playbook", "concept", "entity", "strategy", "adr", "project", "resource", "note"], default="lesson")
     p_rec.add_argument("--title", required=True, help="Title of the note")
     p_rec.add_argument("--content", required=True, help="Body text / decision / lesson")
     p_rec.add_argument("--links", nargs="*", default=[], help="Optional wikilinks (e.g. [[PERSONA_CORE]])")
     p_rec.add_argument("--author", default="AI", help="Author tag (Codex, Claude, Antigravity, etc.)")
+    p_rec.add_argument("--area", choices=["work", "personal", "private"], default="work", help="Area scope (private excludes from AI Shared Memory)")
+    p_rec.add_argument("--status", choices=["active", "draft", "archived"], default="active")
     p_rec.set_defaults(func=cmd_record)
+
+    # ingest (4-stage obsidian-file-ingest)
+    p_ing = subparsers.add_parser("ingest", help="4-stage Obsidian File Ingest: preserve raw files in Imports/ and distill clean Markdown into Vault")
+    p_ing.add_argument("path", help="Source file or directory path to ingest")
+    p_ing.add_argument("--area", choices=["work", "personal", "private"], default="work", help="Area tag (private excludes from AI Shared Memory)")
+    p_ing.add_argument("--folder", default="Resources", help="Destination Vault folder for distilled Markdown (default: Resources)")
+    p_ing.add_argument("--bundle-name", default=None, help="Optional custom bundle name")
+    p_ing.set_defaults(func=cmd_ingest)
+
+    # scaffold (Obsidian Bases + Home.md + Overview.canvas)
+    p_scaf = subparsers.add_parser("scaffold", help="Generate Obsidian Native .base database views, Overview.canvas, and Home.md")
+    p_scaf.add_argument("--persona-name", default=None, help="Optional owner name for Home.md")
+    p_scaf.set_defaults(func=cmd_scaffold)
 
     # sync
     p_sync = subparsers.add_parser("sync", help="Recompile and sync SHARED_MEMORY.md from Vault")
@@ -300,14 +354,15 @@ def main():
     p_stat.set_defaults(func=cmd_status)
 
     # onboard (built-in constraint coach & persona interviewer)
-    p_onb = subparsers.add_parser("onboard", help="Built-in Onboarding Coach: diagnose constraints, run 5-min Persona Seed interview, or import ChatGPT exports")
+    p_onb = subparsers.add_parser("onboard", help="Unified Onboarding Coach: 4-question Vault Setup + 3-question Persona Seed interview")
     p_onb.add_argument("--diagnose", action="store_true", help="Diagnose constraints and show actionable guidance")
-    p_onb.add_argument("--interview", action="store_true", help="Run interactive 5-question Persona Seed interview")
+    p_onb.add_argument("--interview", action="store_true", help="Run unified 7-question Vault Setup + Persona Seed interview")
     p_onb.add_argument("--open-chatgpt", action="store_true", help="Open ChatGPT export settings in browser")
     p_onb.add_argument("--seed-philosophy", help="Save Philosophy (使う言葉) seed directly from chat")
     p_onb.add_argument("--seed-reaction", help="Save Reaction (反応する言葉) seed directly from chat")
     p_onb.add_argument("--seed-action", help="Save Action (行動する言葉) seed directly from chat")
     p_onb.add_argument("--seed-ng", default="", help="Save NG words / style correction seed directly from chat")
+    p_onb.add_argument("--ingest-path", default=None, help="Optional path to existing files to ingest during onboarding")
     p_onb.set_defaults(func=cmd_onboard)
 
     # contradictions (daily semantic contradiction detector & user resolution engine)

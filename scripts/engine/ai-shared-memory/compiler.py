@@ -23,15 +23,45 @@ CODEX_MEMORY_DIR = HOME_DIR / ".codex" / "memories"
 _default_archive_db = (HOME_DIR / "Claude" / "dev" / "ai-chat-archive" / "archive.db") if (HOME_DIR / "Claude" / "dev" / "ai-chat-archive").exists() else (VAULT_DIR / ".ai-hub" / "archive.db")
 ARCHIVE_DB = Path(os.environ.get("AI_ARCHIVE_DB", str(_default_archive_db))).expanduser()
 
+def is_excluded_by_frontmatter(text: str) -> bool:
+    """Exclude notes with area: private or status: archived/deprecated from AI Shared Memory."""
+    if not text.startswith("---"):
+        return False
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        return False
+    fm = parts[1]
+    if re.search(r"^\s*area:\s*private\b", fm, re.MULTILINE | re.IGNORECASE):
+        return True
+    if re.search(r"^\s*status:\s*(archived|deprecated)\b", fm, re.MULTILINE | re.IGNORECASE):
+        return True
+    return False
+
+
 def clean_body_text(text: str) -> str:
     # Remove YAML frontmatter if present
     if text.startswith("---"):
         parts = text.split("---", 2)
         if len(parts) >= 3:
             text = parts[2]
-    # Remove markdown headers and clean extra spaces
-    lines = [l.strip() for l in text.splitlines() if l.strip() and not l.strip().startswith("#")]
-    return " ".join(lines)
+    # Remove dataview blocks and markdown headers
+    text = re.sub(r"```dataview.*?```", "", text, flags=re.DOTALL)
+    lines = []
+    for l in text.splitlines():
+        s = l.strip()
+        if not s or s.startswith("#") or s.startswith("> [!"):
+            continue
+        if s.startswith("> "):
+            s = s[2:].strip()
+        lines.append(s)
+    joined = " ".join(lines)
+    try:
+        from persona_extractor import sanitize_pii_and_secrets
+        joined = sanitize_pii_and_secrets(joined)
+    except Exception:
+        pass
+    return joined
+
 
 def extract_recent_notes(directory: Path, pattern: str = "*.md", limit: int = 5, source_prefix: str = "") -> list:
     items = []
@@ -43,10 +73,12 @@ def extract_recent_notes(directory: Path, pattern: str = "*.md", limit: int = 5,
         reverse=True
     )
     for p in files:
-        if p.name in ("index.md", "MEMORY.md", "MEMORY_ARCHIVE.md"):
+        if p.name in ("index.md", "MEMORY.md", "MEMORY_ARCHIVE.md", "Home.md"):
             continue
         try:
             content = p.read_text(encoding="utf-8", errors="ignore")
+            if is_excluded_by_frontmatter(content):
+                continue
             title_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
             title = title_match.group(1).strip() if title_match else p.stem
             body = clean_body_text(content)
@@ -64,6 +96,7 @@ def extract_recent_notes(directory: Path, pattern: str = "*.md", limit: int = 5,
         except Exception:
             pass
     return items
+
 
 def extract_archive_stats_and_recent() -> dict:
     import sqlite3
@@ -91,13 +124,23 @@ def extract_archive_stats_and_recent() -> dict:
         pass
     return info
 
+
 def compile_shared_memory():
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-    vault_lessons = extract_recent_notes(VAULT_DIR / "wiki" / "cases", "*.md", limit=5, source_prefix="wiki/cases/")
+    vault_lessons = (
+        extract_recent_notes(VAULT_DIR / "wiki" / "cases", "*.md", limit=4, source_prefix="wiki/cases/")
+        + extract_recent_notes(VAULT_DIR / "wiki" / "playbooks", "*.md", limit=3, source_prefix="wiki/playbooks/")
+        + extract_recent_notes(VAULT_DIR / "Resources", "*.md", limit=3, source_prefix="Resources/")
+        + extract_recent_notes(VAULT_DIR / "Notes", "*.md", limit=2, source_prefix="Notes/")
+    )
+    vault_lessons.sort(key=lambda x: x["date"], reverse=True)
     claude_feedback = extract_recent_notes(CLAUDE_MEMORY_DIR, "feedback_*.md", limit=4, source_prefix="~/.claude/memory/")
     claude_autosaves = extract_recent_notes(CLAUDE_PROJ_MEMORY_DIR, "session_*_autosave_*.md", limit=5, source_prefix="linked/claude-project-memories/")
     codex_rollouts = extract_recent_notes(CODEX_MEMORY_DIR / "rollout_summaries", "*.md", limit=5, source_prefix="linked/codex-memories/rollout_summaries/")
-    crm_updates = extract_recent_notes(VAULT_DIR / "crm", "*.md", limit=5, source_prefix="crm/")
+    crm_updates = (
+        extract_recent_notes(VAULT_DIR / "crm", "*.md", limit=5, source_prefix="crm/")
+        + extract_recent_notes(VAULT_DIR / "People", "*.md", limit=3, source_prefix="People/")
+    )
     arch_info = extract_archive_stats_and_recent()
 
     c_cnt = arch_info["stats"].get("claude", 0)

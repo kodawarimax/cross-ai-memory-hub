@@ -203,16 +203,28 @@ tags: [persona, clone, voice, sns, {persona_name}]
 """, encoding="utf-8")
 
 
+    # 6. Run Obsidian Native v3.1 scaffold (.base views, Overview.canvas, Home.md) if ingestor is available
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent / "engine" / "ai-shared-memory"))
+        sys.path.insert(0, str(Path.home() / "Claude" / "dev" / "ai-shared-memory"))
+        from ingestor import ensure_obsidian_native_scaffold
+        ensure_obsidian_native_scaffold(vault_dir, persona_name=persona_name)
+    except Exception:
+        pass
+
+
 def bind_agent_contracts(workspace_dir: Path, vault_dir: Path):
     block = f"""
-## 共通記憶 & 人格コピー統合基盤 (Cross-AI Obsidian Hub)
+## 共通記憶 & 人格コピー統合基盤 (Cross-AI Obsidian Hub v3.1)
 
 - 全AI（Codex / Claude Code / Antigravity）は、`{vault_dir}/memory/SHARED_MEMORY.md` を共通の記憶正本として参照する。
 - 全AIの過去〜今後のチャット履歴は `{vault_dir}/raw/sessions/` 及び `chat-archive` (SQLite FTS5) に自動集約される。
 - 横断検索: `ai-memory search "<キーワード>"` / `chat-archive search "<キーワード>"`
 - 人格コピー＆SNSドラフト抽出: `ai-memory persona --mode core` / `ai-memory persona --mode sns`
-- 重要決定・教訓の記録: `ai-memory record --type <lesson|project|strategy> --title "..." --content "..."`
-- **内蔵エージェント・オンボーディング規律**: `SHARED_MEMORY.md` の `§6. 内蔵エージェントからの環境最適化・ユーザー案内` に未解決の制約（ChatGPTエクスポート案内、コールドスタート時の5問人格インタビュー、OS設定案内）が表示されている場合、AIエージェントは対話の中で自律的にユーザーへその手順を案内・質問して解決をリードする（`ai-memory onboard --diagnose` / `ai-memory onboard --seed-philosophy ...`）。
+- 重要決定・教訓の記録 (Unified Frontmatter v3.1): `ai-memory record --type <lesson|playbook|strategy|project> --area <work|personal|private> --title "..." --content "..."`
+- 外部ファイル群の4ステージ蒸留・取り込み: `ai-memory ingest "<ファイルまたはフォルダパス>" --area <work|personal|private>`
+- Obsidian Bases & MOC 再生成: `ai-memory scaffold`（`Knowledge_Atlas.base`, `AI_Sessions.base`, `Persona_&_SNS.base`, `Overview.canvas`, `Home.md`）
+- **内蔵エージェント・オンボーディング規律**: `SHARED_MEMORY.md` の `§6. 内蔵エージェントからの環境最適化・ユーザー案内` に未解決の制約（ChatGPTエクスポート案内、コールドスタート時の7問統合オンボーディング、OS設定案内）が表示されている場合、AIエージェントは対話の中で自律的にユーザーへその手順を案内・質問して解決をリードする（`ai-memory onboard --diagnose` / `ai-memory onboard --interview`）。
 - **日次・意味上の矛盾チェック＆ユーザー裁定規律**: `SHARED_MEMORY.md` の `§7. 意味上の矛盾チェック ＆ ユーザー判断ルール`（または `memory/CONTRADICTION_INBOX.md`）に未解決の矛盾（Pending Contradictions）が存在する場合、1日1回ユーザーへA・Bどちらが正しいか（または場面分けか）質問し、回答を `ai-memory contradictions --resolve <ID> --choice <A|B|BOTH>` で即座に正本へ反映する。
 """
     for fname in ["AGENTS.md", "CLAUDE.md"]:
@@ -225,7 +237,7 @@ def bind_agent_contracts(workspace_dir: Path, vault_dir: Path):
 
 def deploy_runtime_engine(vault_dir: Path) -> tuple[Path, Path]:
     """
-    Ensures the portable runtime scripts (indexer.py, obsidian_exporter.py, compiler.py, persona_extractor.py, onboarding_coach.py, contradiction_resolver.py, cli.py, recorder.py)
+    Ensures the portable runtime scripts (indexer.py, obsidian_exporter.py, compiler.py, persona_extractor.py, onboarding_coach.py, contradiction_resolver.py, ingestor.py, cli.py, recorder.py)
     and CLI binaries (~/.local/bin/chat-archive, ~/.local/bin/ai-memory) exist in the target user's environment.
     """
     home = Path.home()
@@ -252,7 +264,7 @@ def deploy_runtime_engine(vault_dir: Path) -> tuple[Path, Path]:
                 dst_sh = archive_dir / "bin" / "auto-sync-obsidian.sh"
                 shutil.copy2(sync_sh, dst_sh)
                 dst_sh.chmod(0o755)
-            for fname in ["compiler.py", "persona_extractor.py", "onboarding_coach.py", "contradiction_resolver.py", "recorder.py", "cli.py"]:
+            for fname in ["compiler.py", "persona_extractor.py", "onboarding_coach.py", "contradiction_resolver.py", "ingestor.py", "recorder.py", "cli.py"]:
                 src = bundled_engine / "ai-shared-memory" / fname
                 if src.exists():
                     shutil.copy2(src, memory_dir / fname)

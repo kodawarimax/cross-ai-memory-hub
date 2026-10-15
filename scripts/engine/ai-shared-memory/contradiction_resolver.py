@@ -5,7 +5,7 @@ contradiction_resolver.py - Semantic Contradiction Detector & Daily User Resolut
 Detects semantic contradictions across:
 - Learned corrections & style rules (persona_learning_state.json)
 - Claude/Codex feedback memories (feedback_*.md, user_*.md)
-- Persona Core OS & Seeds (PERSONA_CORE.md / JUNGO_PERSONA_CORE.md / PERSONA_SEEDS.md)
+- Persona Core OS & Seeds (PERSONA_CORE.md / PERSONA_SEEDS.md)
 - Recent user utterances across all 4 AIs (Codex, Claude, Antigravity, ChatGPT)
 
 Surfaces unresolved contradictions once per day via:
@@ -206,12 +206,12 @@ def collect_candidate_statements(vault_dir: Path = VAULT_DIR) -> list:
         except Exception:
             pass
 
-    # 3. From PERSONA_CORE.md / JUNGO_PERSONA_CORE.md (bullet & numbered normative lines)
+    # 3. From *PERSONA_CORE.md (bullet & numbered normative lines)
     normative_tokens = AFFIRMATIVE_MARKERS + NEGATIVE_MARKERS + (
         "調", "文体", "行", "箇条書き", "散文", "絵文字", "禁止", "のみ", "必須", "排除", "短文", "長文", "敬語", "タメ口", "構造化", "解説"
     )
-    for core_name in ("JUNGO_PERSONA_CORE.md", "PERSONA_CORE.md"):
-        c_file = vault_dir / "memory" / core_name
+    for c_file in sorted((vault_dir / "memory").glob("*PERSONA_CORE.md")):
+        core_name = c_file.name
         if c_file.exists():
             try:
                 c_date = datetime.fromtimestamp(c_file.stat().st_mtime).strftime("%Y-%m-%d")
@@ -516,7 +516,7 @@ tags: [memory, contradiction-check, governance, self-improving]
 
 > **最終スキャン日時**: `{now_str}`
 > **未解決の矛盾**: **`{len(pending)} 件`** ｜ **解決済みの判断ルール**: `{len(resolved)} 件`
-> **連携先**: [[SHARED_MEMORY]] | [[JUNGO_PERSONA_CORE]] | [[PERSONA_CORE]]
+> **連携先**: [[SHARED_MEMORY]] | [[PERSONA_CORE]] | [[Knowledge_Atlas.base]]
 
 ---
 
@@ -571,7 +571,7 @@ def resolve_contradiction(
     Applies the user's judgment (`A`, `B`, `BOTH`, or `DISMISS`) for a contradiction ID:
     1. Marks the contradiction as resolved in `contradictions_state.json`.
     2. Removes or updates the losing rule in `persona_learning_state.json`.
-    3. Appends the canonical resolution to `PERSONA_CORE.md` / `JUNGO_PERSONA_CORE.md`.
+    3. Appends the canonical resolution to `PERSONA_CORE.md`.
     4. Updates `CONTRADICTION_INBOX.md` and recompiles `SHARED_MEMORY.md`.
     """
     state = load_contradictions_state()

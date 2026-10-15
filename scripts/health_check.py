@@ -45,10 +45,10 @@ def check_all():
     print(f"✅ Obsidian Mirror:    {mirrored:,} session notes in raw/sessions/ | {chatgpt_dna} ChatGPT Project DNA files")
 
     # 3. Check Persona Core & SNS Engine
-    persona_core = (vault_dir / "memory" / "JUNGO_PERSONA_CORE.md") if (vault_dir / "memory" / "JUNGO_PERSONA_CORE.md").exists() else (vault_dir / "memory" / "PERSONA_CORE.md")
-    voice_log = vault_dir / "memory" / "JUNGO_VOICE_LOG.md"
+    p_cores = list((vault_dir / "memory").glob("*PERSONA_CORE.md"))
+    v_logs = list((vault_dir / "memory").glob("*VOICE_LOG.md"))
     sns_drafts = vault_dir / "memory" / "SNS_READY_DRAFTS.md"
-    p_ok = persona_core.exists() and voice_log.exists() and sns_drafts.exists()
+    p_ok = bool(p_cores) and bool(v_logs) and sns_drafts.exists()
     print(f"✅ Persona & SNS OS:   {'Ready' if p_ok else 'Missing'} (Core + Voice Log + SNS Drafts)")
 
     # 4. Check Obsidian Shared Memory

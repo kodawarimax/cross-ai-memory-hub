@@ -39,7 +39,7 @@ def diagnose_constraints(vault_dir: Path = None, archive_db: Path = None) -> dic
     # 1. Check ChatGPT Web Exports / Project DNA
     chatgpt_projects_dir = HOME_DIR / ".codex" / ".chatgpt-projects"
     has_chatgpt_project = chatgpt_projects_dir.exists() and any(chatgpt_projects_dir.rglob("*"))
-    has_vault_chatgpt = (vault_dir / "wiki" / "chatgpt-project-jungo-clone").exists()
+    has_vault_chatgpt = bool(list((vault_dir / "wiki").glob("chatgpt-project*")))
     conv_jsons = []
     zip_exports = []
     for d in [HOME_DIR / "Downloads", HOME_DIR / "Desktop", HOME_DIR / "Documents", chatgpt_projects_dir]:
@@ -69,9 +69,9 @@ def diagnose_constraints(vault_dir: Path = None, archive_db: Path = None) -> dic
         except Exception:
             pass
 
-    has_jungo_canon = (vault_dir / "wiki" / "entities" / "坂本淳悟_正典.md").exists()
+    has_local_canon = (mem_dir / "LOCAL_CANON.md").exists() or (mem_dir / "LOCAL_PERSONA_CONFIG.json").exists()
     has_persona_seeds = seeds_file.exists()
-    is_cold_start = (user_msg_count < 50) and (not has_jungo_canon) and (not has_persona_seeds)
+    is_cold_start = (user_msg_count < 50) and (not has_local_canon) and (not has_persona_seeds)
 
     # 3. Check OS & Runtime Constraints (Windows native symlinks / zstd binary)
     os_name = platform.system()
@@ -195,19 +195,54 @@ tags: [persona, onboarding, seeds, sns-source]
 
 def run_interactive_interview():
     print("==================================================================")
-    print("🎙️  Built-in Persona Coach — 5分間・人格コア抽出インタビュー")
+    print("🏛️  Unified Obsidian Vault & Persona Onboarding (v3.1 — 全7問)")
     print("==================================================================")
-    print("過去のチャット履歴が少ない環境でも、この5問に答えるだけで初日からあなた専用の")
-    print("人格コピー（PERSONA_CORE.md）とSNS即投稿ドラフト（SNS_READY_DRAFTS.md）が完成します。\n")
+    print("前半4問（番号選択）であなたのObsidianフォルダ構造・データベース(.base)を構築し、")
+    print("後半3問であなた専用の人格コア（PERSONA_CORE.md）とSNSドラフトを初期生成します。\n")
 
-    q1 = input("Q1 【使う言葉・使命】仕事や人生で一番大切にしている価値観・こだわりは何ですか？\n> ").strip()
-    q2 = input("\nQ2 【反応する言葉・違和感】世間や業界を見て「これはおかしい」と違和感を覚えることは？\n> ").strip()
-    q3 = input("\nQ3 【反応する言葉・共鳴】どんな人や姿勢を見たときに「最高だ」と心が動きますか？\n> ").strip()
-    q4 = input("\nQ4 【行動する言葉・号令】自分や仲間を動かすとき、よく口にする言葉や判断基準は？\n> ").strip()
-    q5 = input("\nQ5 【絶対NG表現】SNSや文章で「これだけは使いたくない・自分らしくない」表現は？\n> ").strip()
+    print("--- [Part A: Obsidian Vault 構造設計 (選択式 4問)] ---")
+    role_choice = input(
+        "Q1 【お仕事】当てはまる番号を選んでください (1: 経営者・個人事業主 [推奨] / 2: 会社員・専門職 / 3: クリエイター・フリーランス / 4: 学生・研究者): "
+    ).strip() or "1"
+    focus_choice = input(
+        "Q2 【管理したいこと(複数可・カンマ区切り)】(1: タスク・ToDo / 2: アイデア・メモ / 3: 学習・読書ノート / 4: 人脈・顧客情報 [デフォルト: 1,2,4]): "
+    ).strip() or "1,2,4"
+    scope_choice = input(
+        "Q3 【管理範囲】(1: 仕事＋プライベート両方 [推奨] / 2: 仕事のみ): "
+    ).strip() or "1"
+    ingest_dir = input(
+        "Q4 【既存ファイルの取り込み】取り込みたいフォルダやPDF等のパスがあれば入力してください (なければEnterでスキップ): "
+    ).strip()
 
-    comb_react = " / ".join([x for x in [q2, q3] if x])
-    seed_path = save_persona_seeds(q1, comb_react, q4, q5)
+    extra_dirs = []
+    if "1" in focus_choice:
+        extra_dirs.append("Tasks")
+    if "2" in focus_choice:
+        extra_dirs.append("Ideas")
+    if "3" in focus_choice:
+        extra_dirs.append("Reading")
+    if "4" in focus_choice:
+        extra_dirs.append("People")
+    if scope_choice == "1":
+        extra_dirs.extend(["Work", "Personal"])
+
+    try:
+        from ingestor import ensure_obsidian_native_scaffold, ingest_files
+        scaf_res = ensure_obsidian_native_scaffold(VAULT_DIR, extra_dirs=extra_dirs)
+        print(f"\n✅ Obsidian Vault & Bases (.base / Canvas / Home.md) を構築しました: {scaf_res['vault_dir']}")
+        if ingest_dir and Path(ingest_dir).expanduser().exists():
+            ing_res = ingest_files(ingest_dir, VAULT_DIR)
+            print(f"✅ 既存ファイル {ing_res['source_count']} 件を4ステージ蒸留・取り込みました: {ing_res['moc_path']}")
+    except Exception as e:
+        print(f"⚠️ Vault初期化通知: {e}")
+
+    print("\n--- [Part B: 自己改善型・人格コア抽出 (記述式 3問)] ---")
+    q5 = input("Q5 【使う言葉・使命】仕事や人生で一番大切にしている価値観・こだわりは何ですか？\n> ").strip()
+    q6 = input("\nQ6 【反応する言葉】世間を見て「これはおかしい」と感じる違和感や、逆に「最高だ」と共鳴する姿勢は？\n> ").strip()
+    q7 = input("\nQ7 【行動する言葉＆NG表現】判断基準・口癖と、文章で「これだけは使いたくないAIっぽい表現」は？\n> ").strip()
+
+    # Split Q7 if user wrote NG words, or pass to both action and ng_words
+    seed_path = save_persona_seeds(q5, q6, q7, q7)
     print(f"\n✅ 初期人格シードを保存しました: {seed_path}")
 
     try:
@@ -246,14 +281,15 @@ def format_directives_for_shared_memory(vault_dir: Path = None, archive_db: Path
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Built-in Onboarding & Constraint Resolution Coach")
+    parser = argparse.ArgumentParser(description="Unified Obsidian Vault Setup & Persona Onboarding Coach (v3.1)")
     parser.add_argument("--diagnose", action="store_true", help="Diagnose environmental constraints and print actionable instructions")
-    parser.add_argument("--interview", action="store_true", help="Run interactive 5-question Persona Seed interview")
+    parser.add_argument("--interview", action="store_true", help="Run unified 7-question Vault Setup + Persona Seed interview")
     parser.add_argument("--open-chatgpt", action="store_true", help="Open ChatGPT Data Controls in browser and explain auto-zip import")
     parser.add_argument("--seed-philosophy", help="Non-interactive seed for Philosophy (使う言葉)")
     parser.add_argument("--seed-reaction", help="Non-interactive seed for Reaction (反応する言葉)")
     parser.add_argument("--seed-action", help="Non-interactive seed for Action (行動する言葉)")
     parser.add_argument("--seed-ng", default="", help="Non-interactive seed for NG words / corrections")
+    parser.add_argument("--ingest-path", default=None, help="Optional path to existing files to ingest during onboarding")
     args = parser.parse_args()
 
     if args.open_chatgpt:
@@ -268,7 +304,14 @@ def main():
             pass
         return
 
+    if args.ingest_path:
+        from ingestor import ingest_files
+        res = ingest_files(args.ingest_path, VAULT_DIR)
+        print(f"✅ Ingested {res['source_count']} files into Obsidian Vault: {res['moc_path']}")
+
     if args.seed_philosophy or args.seed_reaction or args.seed_action:
+        from ingestor import ensure_obsidian_native_scaffold
+        ensure_obsidian_native_scaffold(VAULT_DIR)
         p = save_persona_seeds(
             args.seed_philosophy or "",
             args.seed_reaction or "",

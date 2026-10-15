@@ -69,9 +69,9 @@ echo Setup complete!
 pause
 """
 
-QUICKSTART_MD = """# Universal Self-Improving AI Agent Hub (v3.0) — クイックスタートガイド
+QUICKSTART_MD = """# Universal Self-Improving AI Agent Hub (v3.1 Obsidian Native Edition) — クイックスタートガイド
 
-Claude Code、OpenAI Codex、Google Antigravity (Gemini)、および ChatGPT の全対話履歴・音声入力を Obsidian Vault に一元集約し、**使うほどあなた自身の言葉（使う言葉・反応する言葉・行動する言葉・NG表現）を自己学習して進化する汎用エージェント原型モデル**です。
+Claude Code、OpenAI Codex、Google Antigravity (Gemini)、および ChatGPT の全対話履歴・音声入力と手元のドキュメント群を Obsidian Vault に一元集約し、**使うほどあなた自身の言葉（使う言葉・反応する言葉・行動する言葉・NG表現）を自己学習して進化する汎用エージェント原型モデル（Obsidian Bases `.base` ＆ 4ステージ資料蒸留統合版）**です。
 
 ---
 
@@ -79,7 +79,7 @@ Claude Code、OpenAI Codex、Google Antigravity (Gemini)、および ChatGPT の
 
 ### macOS の場合
 1. フォルダ内の **`Install_Mac.command`** をダブルクリックします（またはターミナルで `bash scripts/setup_obsidian.sh` を実行）。
-2. 名前を聞かれたら入力して Enter を押すだけで、Obsidian Vault の自動検出・構築・初回同期・10分毎のバックグラウンド自動同期がすべて設定されます。
+2. 名前を聞かれたら入力して Enter を押すだけで、Obsidian Vault の自動検出・構築・データベースビュー（`.base`）・初回同期・10分毎のバックグラウンド自動同期がすべて設定されます。
 
 ### Windows / Linux / WSL の場合
 - **Windows**: **`Install_Windows.bat`** をダブルクリックします。
@@ -90,8 +90,14 @@ Claude Code、OpenAI Codex、Google Antigravity (Gemini)、および ChatGPT の
 ## 2. 導入直後に使える主要コマンド
 
 ```bash
-# 初期データが少ない場合：5問の人格コア抽出インタビュー（5分）
+# 初期セットアップ：Vault構造4問 ＋ 人格コア抽出3問の統合インタビュー（5分）
 ai-memory onboard --interview
+
+# 手元のPDF・Word・テキスト等のフォルダを4ステージ非破壊蒸留してVaultへ取り込み
+ai-memory ingest ~/Documents/MyDocs --area work
+
+# Obsidian Bases (.base) データベースビューと Home.md の生成・更新
+ai-memory scaffold
 
 # 全AIの過去チャット横断検索
 chat-archive search "検索ワード"
@@ -100,66 +106,69 @@ chat-archive search "検索ワード"
 ai-memory persona --mode sync
 ai-memory persona --mode sns
 
-# 重要な意思決定や教訓の記録
-ai-memory record --type lesson --title "教訓タイトル" --content "内容"
+# 重要な意思決定や教訓の記録（area: private 指定でAI共有から隔離可能）
+ai-memory record --type playbook --area work --title "タイトル" --content "内容"
 ```
 """
 
 
-README_GITHUB_MD = """# Universal Self-Improving AI Agent Archetype (v3.0)
+README_GITHUB_MD = """# Universal Self-Improving AI Agent Archetype (v3.1 — Obsidian Native Edition)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-green.svg)](https://www.python.org/)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero%20(Stdlib%20Only)-brightgreen.svg)]()
+[![Obsidian Native](https://img.shields.io/badge/Obsidian-Bases%20%26%20Canvas%20Ready-purple.svg)]()
 
-**Claude Code, OpenAI Codex CLI, Google Antigravity (Gemini), and ChatGPT** unified into a single **Obsidian Vault** with a **Closed-Loop Self-Improving Persona & Memory Engine**.
+**Claude Code, OpenAI Codex CLI, Google Antigravity (Gemini), and ChatGPT** unified into a single **Obsidian Native Vault** with **Database Views (`.base`)**, **4-Stage Non-Destructive File Ingest**, and a **Closed-Loop Self-Improving Persona & Memory Engine**.
 
-Every conversation and voice dictation across your AI tools is automatically indexed into SQLite FTS5, mirrored into Obsidian, and distilled into an evolving **Persona Core (`PERSONA_CORE.md`)** and **Shared Memory (`SHARED_MEMORY.md`)**—using **zero external LLM API calls ($0 cost, 100% local & private)**.
+Every conversation, voice dictation, and local document across your workflow is automatically indexed into SQLite FTS5, structured into Obsidian Flavored Markdown, and distilled into an evolving **Persona Core (`PERSONA_CORE.md`)** and **Shared Memory (`SHARED_MEMORY.md`)**—using **zero external LLM API calls ($0 cost, 100% local & private)**.
 
 ---
 
-## ✨ Key Architecture (Dual-Brain + Closed-Loop Evolution)
+## ✨ Key Architecture (Dual-Brain + Obsidian Native + Closed-Loop Evolution)
 
 ```mermaid
 flowchart LR
-    subgraph Silos["1. Multi-AI Input Silos"]
+    subgraph Silos["1. Multi-AI & File Inputs"]
         CC["Claude Code"]
         CX["OpenAI Codex CLI"]
         AG["Google Antigravity"]
         CG["ChatGPT Exports"]
+        FI["Local Files (PDF/DOCX/TXT)"]
     end
 
     subgraph Engine["2. Deterministic Local Kernel (0 API Cost)"]
-        PII["PII / Secret Sanitizer Gate"]
+        ING["4-Stage File Ingestor (doc-to-md + Raw Backup)"]
+        PII["PII / Secret Sanitizer + area:private Gate"]
         FTS["SQLite FTS5 Full-Text Index"]
         MINE["Rolling FIFO Correction & Lexicon Miner"]
         SLOP["Closed-Loop Slop Gate (Dynamic Banned Phrases)"]
     end
 
-    subgraph Vault["3. Obsidian Knowledge Hub"]
+    subgraph Vault["3. Obsidian Native Hub"]
+        BASE["Knowledge_Atlas.base & AI_Sessions.base"]
         SM["SHARED_MEMORY.md (Cross-AI Canon)"]
         PC["PERSONA_CORE.md (3-Voice Taxonomy)"]
         SNS["SNS_READY_DRAFTS.md (X / Threads / note)"]
     end
 
-    Silos --> PII --> FTS --> MINE --> SLOP --> Vault
+    Silos --> ING & PII --> FTS --> MINE --> SLOP --> Vault
     Vault -.->|"Auto-Injected into CLAUDE.md / AGENTS.md"| Silos
 ```
 
-1. **Cross-AI Full-Text Chat Archive (`chat-archive`)**:
+1. **Obsidian Native Database UI (`.base` & `.canvas`)**:
+   - Automatically generates `Knowledge_Atlas.base` (Table & Card views of Playbooks, Strategies, Cases, and Resources), `AI_Sessions.base` (Scoped table view of mirrored AI chats), `Persona_&_SNS.base`, `Overview.canvas`, and `Home.md` (MOC).
+2. **4-Stage Non-Destructive File Ingest (`ai-memory ingest <path>`)**:
+   - Preserves original binaries/files in `Imports/<bundle>/`, extracts clean text (`doc-to-md` / stdlib `.docx`/`.pptx` / `pdftotext`), strips noise, masks PII, adds Unified Frontmatter v3.1, and compiles into `SHARED_MEMORY.md`.
+3. **Cross-AI Full-Text Chat Archive (`chat-archive`)**:
    - Indexes sessions across Claude Code (`~/.claude/projects`), Codex CLI (`~/.codex`), Antigravity (`~/.gemini/antigravity/brain`), and ChatGPT ZIP exports.
-2. **3-Voice Persona Taxonomy (`ai-memory persona`)**:
-   - Automatically classifies authentic user utterances into:
-     - **Philosophy Words (使う言葉)**: Core principles, worldview, structural definitions.
-     - **Reaction Words (反応する言葉)**: Approval triggers, rejection triggers, aesthetic standards.
-     - **Action Words (行動する言葉)**: Execution cadence, decision speed, verification commands.
-3. **Closed-Loop Self-Improvement (`persona_learning_state.json`)**:
-   - **Rolling FIFO Window**: Continuously mines your latest corrections (`「〜ではなく」「〜禁止」`) without freezing.
-   - **Dynamic Slop Gate**: Any phrase you reject in chat is automatically added to `dynamic_banned_phrases` and stripped from future drafts.
-4. **Deterministic PII & Secret Sanitizer**:
-   - Automatically redacts API keys (`sk-*`, `ghp_*`, `AIza*`), emails, phone numbers, and URLs with query tokens before writing to Persona logs or SNS drafts.
-5. **Cold-Start 5-Question Interview (`ai-memory onboard --interview`)**:
-   - Even on a brand-new machine with 0 chat history, a 5-minute interactive CLI interview extracts your initial Persona Seeds (`PERSONA_SEEDS.md`).
+4. **3-Voice Persona Taxonomy & Closed-Loop Self-Improvement (`ai-memory persona`)**:
+   - Classifies authentic user utterances into **Philosophy Words (使う言葉)**, **Reaction Words (反応する言葉)**, and **Action Words (行動する言葉)**.
+   - **Rolling FIFO Window & Dynamic Slop Gate**: Continuously mines your latest corrections (`「〜ではなく」「〜禁止」`) and strips banned phrases from future drafts.
+5. **Deterministic Privacy Gate (`area: private` & PII Sanitizer)**:
+   - Any note with `area: private` in its YAML frontmatter is automatically excluded from `SHARED_MEMORY.md`. API keys (`sk-*`, `ghp_*`, `AIza*`), emails, and phone numbers are deterministically redacted.
+6. **Unified 7-Question Onboarding (`ai-memory onboard --interview`)**:
+   - Combines 4 multiple-choice Vault Setup questions with 3 Persona Seed questions to build both your custom folder structure and initial `PERSONA_CORE.md` in 5 minutes.
 
 ---
 
@@ -183,32 +192,29 @@ bash scripts/setup_obsidian.sh "" "Your Name"
 Once installed, `~/.local/bin` provides two global commands (`ai-memory` and `chat-archive`):
 
 ```bash
-# 1. Cold-start 5-question persona interview (for new users)
+# 1. Unified 7-question Vault Setup + Persona Seed interview
 ai-memory onboard --interview
 
-# 2. Search across all past Claude / Codex / Antigravity / ChatGPT sessions
+# 2. Ingest local PDFs, Word/PowerPoint docs, or folders into Obsidian (4-stage pipeline)
+ai-memory ingest ~/Documents/ProjectDocs --area work
+
+# 3. Generate or repair Obsidian .base views, Overview.canvas, and Home.md
+ai-memory scaffold
+
+# 4. Search across all past Claude / Codex / Antigravity / ChatGPT sessions
 chat-archive search "architecture"
 chat-archive list --limit 20
 
-# 3. Run self-improving persona extraction & generate SNS drafts (X / Threads / note)
+# 5. Run self-improving persona extraction & generate SNS drafts (X / Threads / note)
 ai-memory persona --mode sync
 ai-memory persona --mode sns
 
-# 4. Record a permanent lesson, project update, or playbook into Obsidian Shared Memory
-ai-memory record --type lesson --title "Always use atomic writes" --content "Use tempfile + os.replace to prevent sync corruption."
+# 6. Record a permanent lesson, playbook, or project update (Unified Schema v3.1)
+ai-memory record --type playbook --area work --title "Atomic Writes" --content "Always use tempfile + os.replace."
 
-# 5. Check system health across all connected AI agents
-python3 scripts/health_check.py
+# 7. Check daily semantic contradictions across rules & memories
+ai-memory contradictions --scan
 ```
-
----
-
-## 🔒 Privacy & Local Customization
-
-All personal identity overrides and project tables are strictly separated from the source code and stored only inside your local Obsidian Vault (`<Vault>/memory/`):
-- `LOCAL_CANON.md`: Optional custom markdown injected at the top of `SHARED_MEMORY.md`.
-- `LOCAL_PERSONA_CONFIG.json`: Optional custom keyword weights and file naming overrides.
-- `PERSONA_SEEDS.md`: Your personal answers from `ai-memory onboard --interview`.
 
 ---
 
@@ -267,7 +273,6 @@ def verify_no_leaks(staging_dir: Path):
             txt = p.read_text(encoding="utf-8", errors="ignore")
             if secret_re.search(txt):
                 raise RuntimeError(f"Security gate blocked potential secret in: {p}")
-            # Allow github repo owner 'kodawarimax' in README clone URL, block all private/client terms
             m = private_terms_re.search(txt)
             if m:
                 raise RuntimeError(f"Security gate blocked private identifier '{m.group(0)}' in: {p}")
@@ -275,19 +280,23 @@ def verify_no_leaks(staging_dir: Path):
 
 def build_package() -> Path:
     DIST_DIR.mkdir(parents=True, exist_ok=True)
-    zip_path = DIST_DIR / "universal-self-improving-agent-v3.0.zip"
+    zip_path = DIST_DIR / "universal-self-improving-agent-v3.1.zip"
     repo_stage_dir = DIST_DIR / "universal-self-improving-agent"
 
     with tempfile.TemporaryDirectory() as tmp:
         stage = Path(tmp) / "universal-self-improving-agent"
         scripts_dst = stage / "scripts"
+        refs_dst = stage / "references"
         engine_Archive_dst = scripts_dst / "engine" / "ai-chat-archive"
         engine_mem_dst = scripts_dst / "engine" / "ai-shared-memory"
         (engine_Archive_dst / "bin").mkdir(parents=True, exist_ok=True)
         engine_mem_dst.mkdir(parents=True, exist_ok=True)
+        refs_dst.mkdir(parents=True, exist_ok=True)
 
-        # Copy SKILL.md, README.md, LICENSE, .gitignore & top-level installers
+        # Copy SKILL.md, references/, README.md, LICENSE, .gitignore & top-level installers
         shutil.copy2(SKILL_ROOT / "SKILL.md", stage / "SKILL.md")
+        if (SKILL_ROOT / "references" / "OBSIDIAN_NATIVE_GUIDE.md").exists():
+            shutil.copy2(SKILL_ROOT / "references" / "OBSIDIAN_NATIVE_GUIDE.md", refs_dst / "OBSIDIAN_NATIVE_GUIDE.md")
         (stage / "README.md").write_text(README_GITHUB_MD, encoding="utf-8")
         (stage / "README_QUICKSTART.md").write_text(QUICKSTART_MD, encoding="utf-8")
         (stage / "LICENSE").write_text(MIT_LICENSE, encoding="utf-8")
@@ -301,7 +310,7 @@ def build_package() -> Path:
         win_bat.write_text(WIN_BAT_SCRIPT, encoding="utf-8")
 
         # Copy core scripts
-        for s_name in ["universal_hub_installer.py", "setup_obsidian.sh", "health_check.py", "build_dist_package.py"]:
+        for s_name in ["universal_hub_installer.py", "setup_obsidian.sh", "health_check.py"]:
             src = SKILL_ROOT / "scripts" / s_name
             if src.exists():
                 shutil.copy2(src, scripts_dst / s_name)
@@ -316,20 +325,28 @@ def build_package() -> Path:
             shutil.copy2(src_archive / "bin" / "auto-sync-obsidian.sh", engine_Archive_dst / "bin" / "auto-sync-obsidian.sh")
 
         src_mem = REPO_ROOT / "dev" / "ai-shared-memory"
-        for f_name in ["compiler.py", "persona_extractor.py", "onboarding_coach.py", "recorder.py", "cli.py"]:
+        for f_name in ["compiler.py", "persona_extractor.py", "onboarding_coach.py", "contradiction_resolver.py", "ingestor.py", "recorder.py", "cli.py"]:
             if (src_mem / f_name).exists():
                 shutil.copy2(src_mem / f_name, engine_mem_dst / f_name)
-
-        # Exclude build_dist_package.py's own regex string from triggering self-match by checking before copying build_dist_package or excluding its regex line
-        (scripts_dst / "build_dist_package.py").unlink(missing_ok=True)
 
         # Run deterministic leak check
         verify_no_leaks(stage)
 
-        # Sync to persistent git staging folder
-        if repo_stage_dir.exists():
-            shutil.rmtree(repo_stage_dir)
-        shutil.copytree(stage, repo_stage_dir)
+        # Sync to persistent git staging folder while preserving .git
+        repo_stage_dir.mkdir(parents=True, exist_ok=True)
+        for item in repo_stage_dir.iterdir():
+            if item.name == ".git":
+                continue
+            if item.is_dir():
+                shutil.rmtree(item)
+            else:
+                item.unlink()
+        for item in stage.iterdir():
+            dst_item = repo_stage_dir / item.name
+            if item.is_dir():
+                shutil.copytree(item, dst_item)
+            else:
+                shutil.copy2(item, dst_item)
 
         # Create ZIP archive
         if zip_path.exists():
@@ -341,7 +358,7 @@ def build_package() -> Path:
                     zf.write(file_p, arcname)
 
     print(f"✅ Clean distribution package built & verified: {zip_path} ({zip_path.stat().st_size:,} bytes)")
-    print(f"✅ Clean Git repository staged at: {repo_stage_dir}")
+    print(f"✅ Clean Git repository updated at: {repo_stage_dir}")
     return zip_path
 
 
